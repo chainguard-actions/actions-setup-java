@@ -1,0 +1,4 @@
+{
+  "upstream": "actions/setup-java",
+  "version": "v5.2.0"
+}
