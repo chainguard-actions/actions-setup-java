@@ -1,5 +1,6 @@
 {
   "owner": "actions",
   "name": "setup-java",
-  "visibility": ""
+  "visibility": "internal",
+  "description": "Set up your GitHub Actions workflow with a specific version of Java"
 }
