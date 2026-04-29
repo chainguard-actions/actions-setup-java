@@ -1,6 +1,12 @@
 # actions/setup-java
 
-Hardened GitHub Action by [Chainguard](https://www.chainguard.dev).
+Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/actions/setup-java](https://github.com/actions/setup-java).
+
+## Versions
+
+| Version | Tag | Upstream commit |
+|---------|-----|-----------------|
+| v5.2.0 | [`v5.2.0`](https://github.com/chainguard-actions/setup-java/tree/v5.2.0) | — |
 
 ## Privacy
 
