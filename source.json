@@ -1,4 +1,6 @@
 {
-  "upstream": "actions/setup-java",
-  "version": "v5.2.0"
+  "owner": "actions",
+  "repo": "setup-java",
+  "version": "",
+  "url": "https://github.com/actions/setup-java"
 }

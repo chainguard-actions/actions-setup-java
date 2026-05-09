@@ -2,5 +2,6 @@
   "owner": "actions",
   "name": "setup-java",
   "visibility": "internal",
-  "description": "Set up your GitHub Actions workflow with a specific version of Java"
+  "description": "Set up your GitHub Actions workflow with a specific version of Java",
+  "block_publish": false
 }
