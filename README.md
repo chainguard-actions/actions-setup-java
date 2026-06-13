@@ -1,6 +1,6 @@
 # actions/setup-java
 
-Set up your GitHub Actions workflow with a specific version of Java
+Set up a specific version of the Java JDK and add the command-line tools to the PATH
 
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/actions/setup-java](https://github.com/actions/setup-java).
 
@@ -8,7 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
-| v5.2.0 | [`v5.2.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.2.0) | — |
+| v5.2.0 | [`v5.2.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.2.0) | [`be666c2`](https://github.com/actions/setup-java/commit/be666c2fcd27ec809703dec50e508c2fdc7f6654) |
 
 ## Privacy
 
