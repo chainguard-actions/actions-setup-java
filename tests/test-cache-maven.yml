@@ -1,0 +1,40 @@
+name: Test cache and cache-dependency-path inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a minimal pom.xml for cache-dependency-path
+        run: |
+          mkdir -p /tmp/maven-project
+          cat > /tmp/maven-project/pom.xml <<'EOF'
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>test</artifactId>
+            <version>1.0</version>
+          </project>
+          EOF
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: '/tmp/maven-project/pom.xml'
+      - name: Assert version output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS"
