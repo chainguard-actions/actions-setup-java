@@ -1,0 +1,59 @@
+name: Test Java setup with jdkFile input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download JDK archive for jdkFile test
+        run: |
+          # Download a Temurin JDK 17 tarball to use as jdkFile
+          curl -fsSL -o /tmp/jdk17.tar.gz \
+            "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.13%2B11/OpenJDK17U-jdk_x64_linux_hotspot_17.0.13_11.tar.gz"
+          echo "Downloaded JDK archive"
+          ls -lh /tmp/jdk17.tar.gz
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'jdkfile'
+          jdkFile: '/tmp/jdk17.tar.gz'
+      - name: Assert distribution output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert path output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is on PATH
+        run: |
+          java -version 2>&1
+          echo "PASS"
