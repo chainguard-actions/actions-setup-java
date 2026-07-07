@@ -6,25 +6,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download a JDK archive for testing
+      - name: Download JDK archive
         run: |
-          # Download Temurin 21 JDK tarball for x64 Linux
-          curl -fsSL -o /tmp/jdk21.tar.gz \
-            "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          # Download a small Temurin JDK 17 tarball for x64 Linux
+          curl -L -o /tmp/jdk17.tar.gz \
+            "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz"
+          echo "Downloaded JDK archive"
+          ls -lh /tmp/jdk17.tar.gz
       - id: setup-java
         uses: .
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'jdkfile'
-          jdkFile: '/tmp/jdk21.tar.gz'
+          jdkFile: '/tmp/jdk17.tar.gz'
           architecture: 'x64'
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}
         run: |
-          echo "actual: $ACTUAL"
+          echo "actual version: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
             echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert path output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected path output to be non-empty"
             exit 1
           fi
           echo "PASS"

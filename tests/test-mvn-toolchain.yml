@@ -1,4 +1,4 @@
-name: Test cache and cache-dependency-path inputs
+name: Test mvn-toolchain-id and mvn-toolchain-vendor inputs
 on:
   workflow_dispatch:
 jobs:
@@ -6,24 +6,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Create a pom.xml for cache dependency path
-        run: |
-          mkdir -p hardened/tests/fixtures/maven
-          cat > hardened/tests/fixtures/maven/pom.xml << 'EOF'
-          <project>
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>com.example</groupId>
-            <artifactId>test</artifactId>
-            <version>1.0.0</version>
-          </project>
-          EOF
       - id: setup-java
         uses: .
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'maven'
-          cache-dependency-path: 'hardened/tests/fixtures/maven/pom.xml'
+          mvn-toolchain-id: 'my-custom-toolchain'
+          mvn-toolchain-vendor: 'adoptium'
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}
@@ -44,6 +33,14 @@ jobs:
             exit 1
           fi
           echo "PASS"
+      - name: Assert toolchains.xml was written
+        run: |
+          if [ ! -f "$HOME/.m2/toolchains.xml" ]; then
+            echo "FAIL: expected toolchains.xml at ~/.m2/toolchains.xml"
+            exit 1
+          fi
+          echo "PASS: toolchains.xml found"
+          cat "$HOME/.m2/toolchains.xml"
       - name: Assert java is available
         run: |
           java -version
