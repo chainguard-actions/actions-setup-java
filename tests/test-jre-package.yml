@@ -1,4 +1,4 @@
-name: Test setup-java with java-version-file input
+name: Test setup-java with JRE package type
 on:
   workflow_dispatch:
 jobs:
@@ -6,15 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Create .java-version file
-        run: |
-          echo "17" > .java-version
-          cat .java-version
       - id: setup-java
         uses: .
         with:
-          java-version-file: '.java-version'
+          java-version: '17'
           distribution: 'temurin'
+          java-package: 'jre'
       - name: Assert version output is set
         env:
           ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
@@ -25,16 +22,30 @@ jobs:
             exit 1
           fi
           echo "PASS: version output is '$ACTUAL_VERSION'"
-      - name: Assert java is available
+      - name: Assert distribution output is set
+        env:
+          ACTUAL_DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL_DIST"
+          if [ -z "$ACTUAL_DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution output is '$ACTUAL_DIST'"
+      - name: Assert java runtime is available
         run: |
           which java
           java -version
-          echo "PASS: java is available on PATH"
+          echo "PASS: java runtime is available on PATH"
       - name: Assert JAVA_HOME is set
         run: |
           echo "JAVA_HOME: $JAVA_HOME"
           if [ -z "$JAVA_HOME" ]; then
             echo "FAIL: JAVA_HOME is not set"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME '$JAVA_HOME' does not exist"
             exit 1
           fi
           echo "PASS: JAVA_HOME is '$JAVA_HOME'"

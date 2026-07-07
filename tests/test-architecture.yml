@@ -1,4 +1,4 @@
-name: Test jdkFile input
+name: Test architecture input
 on:
   workflow_dispatch:
 jobs:
@@ -6,23 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download a JDK archive for testing
-        id: download-jdk
-        run: |
-          # Download Temurin JDK 21 tar.gz for x64 Linux
-          JDK_URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse"
-          JDK_FILE="/tmp/jdk-21.tar.gz"
-          echo "Downloading JDK from Adoptium API..."
-          curl -L -o "$JDK_FILE" "$JDK_URL"
-          echo "Downloaded JDK to $JDK_FILE"
-          ls -lh "$JDK_FILE"
-          echo "jdk_path=$JDK_FILE" >> $GITHUB_OUTPUT
       - id: setup-java
         uses: .
         with:
           java-version: '21'
-          distribution: 'jdkfile'
-          jdkFile: ${{ steps.download-jdk.outputs.jdk_path }}
+          distribution: 'temurin'
+          architecture: 'x64'
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}

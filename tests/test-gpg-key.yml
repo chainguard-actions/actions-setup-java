@@ -1,0 +1,68 @@
+name: Test gpg-private-key and gpg-passphrase inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MY_GPG_PASSPHRASE: ''
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate a test GPG key and export it
+        id: gen-gpg
+        run: |
+          # Generate a test GPG key non-interactively (no passphrase)
+          cat > /tmp/gpg-key-params <<'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --gen-key /tmp/gpg-key-params
+          # Export the private key as ASCII armor
+          GPG_PRIVATE_KEY=$(gpg --batch --armor --export-secret-keys test@example.com)
+          # Write to a file so we can read it back
+          echo "$GPG_PRIVATE_KEY" > /tmp/test-private-key.asc
+          echo "GPG key generated and exported"
+          # Store as output (multiline)
+          {
+            echo 'gpg_key<<GPGEOF'
+            cat /tmp/test-private-key.asc
+            echo 'GPGEOF'
+          } >> $GITHUB_OUTPUT
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_key }}
+          gpg-passphrase: 'MY_GPG_PASSPHRASE'
+      - name: Assert version output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert distribution output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected distribution output to be non-empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available on PATH
+        run: |
+          java -version
+          echo "PASS: java is available"
