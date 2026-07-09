@@ -1,0 +1,46 @@
+name: Test jdkFile input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download a JDK archive for testing
+        run: |
+          # Download Temurin 17 JDK for Linux x64
+          JDK_URL="https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse"
+          echo "Downloading JDK from Adoptium API..."
+          curl -L -o /tmp/jdk-17.tar.gz "$JDK_URL"
+          echo "Download complete, file size: $(du -sh /tmp/jdk-17.tar.gz | cut -f1)"
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'jdkfile'
+          jdkFile: '/tmp/jdk-17.tar.gz'
+          architecture: 'x64'
+      - name: Assert version output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert path output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected path output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

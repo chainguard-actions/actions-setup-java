@@ -1,0 +1,68 @@
+name: Test Java setup with java-version-file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REF: refs/heads/main
+      GITHUB_EVENT_NAME: push
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: setup-java
+        uses: .
+        with:
+          java-version-file: 'tests/fixtures/.java-version'
+          distribution: 'temurin'
+
+      - name: Assert distribution output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+
+      - name: Assert version output is set and contains 17
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "17"; then
+            echo "FAIL: expected version containing '17' but got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+
+      - name: Assert path output is valid directory
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+
+      - name: Assert java 17 is on PATH
+        run: |
+          VERSION=$(java -version 2>&1 | head -1)
+          echo "java version: $VERSION"
+          if ! echo "$VERSION" | grep -q "17"; then
+            echo "FAIL: expected Java 17 but got: $VERSION"
+            exit 1
+          fi
+          echo "PASS"
