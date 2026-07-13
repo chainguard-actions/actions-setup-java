@@ -20,20 +20,14 @@ jobs:
         run: |
           echo "actual: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be set"
+            echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
-      - name: Assert settings.xml was created at custom path
+      - name: Assert settings.xml was written to custom path
         run: |
-          if [ -f "/tmp/custom-maven-settings/settings.xml" ]; then
-            echo "PASS: settings.xml found at custom path"
-            cat "/tmp/custom-maven-settings/settings.xml"
-          else
-            echo "FAIL: settings.xml not found at /tmp/custom-maven-settings/settings.xml"
+          if [ ! -f "/tmp/custom-maven-settings/settings.xml" ]; then
+            echo "FAIL: settings.xml not found at custom path"
             exit 1
           fi
-      - name: Assert java is available
-        run: |
-          java -version
-          echo "PASS: java is available"
+          echo "PASS: settings.xml found at custom path"

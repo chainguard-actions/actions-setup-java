@@ -18,7 +18,7 @@ jobs:
         run: |
           echo "actual: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be set"
+            echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"

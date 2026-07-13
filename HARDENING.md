@@ -10,31 +10,46 @@
 
 **Harden Agent Version:** `1`
 
-Action **actions--setup-java/v5.5.0** was hardened automatically. 0 finding(s) were identified and resolved across 2 iteration(s).
+Action **actions--setup-java/v5.5.0** was hardened automatically. 2 finding(s) were identified and resolved across 1 iteration(s).
+
+## Findings Fixed
+
+### unpinned-uses (severity: high)
+
+Multiple workflow files use mutable tag or branch refs instead of pinned SHA commits, making them vulnerable to supply-chain attacks. Affected refs include: actions/checkout@v7, actions/checkout@v6, actions/reusable-workflows/...@main, actions/publish-immutable-action@v0.0.4, actions/publish-action@v0.4.0, actions/setup-python@v6, github/codeql-action/upload-sarif@v4.
+
+Locations:
+
+- `.github/workflows/basic-validation.yml:20`
+- `.github/workflows/check-dist.yml:20`
+- `.github/workflows/codeql-analysis.yml:16`
+- `.github/workflows/e2e-cache-dependency-path.yml:1`
+- `.github/workflows/e2e-cache.yml:1`
+- `.github/workflows/e2e-local-file.yml:1`
+- `.github/workflows/e2e-publishing.yml:1`
+- `.github/workflows/e2e-versions.yml:1`
+- `.github/workflows/licensed.yml:16`
+- `.github/workflows/publish-immutable-actions.yml:1`
+- `.github/workflows/release-new-action-version.yml:1`
+- `.github/workflows/update-config-files.yml:1`
+- `.github/workflows/zizmor.yml:1`
+
+### script-injection (severity: high)
+
+Sub-rule (a): GitHub Actions expressions are directly interpolated inside run: shell command strings in e2e-versions.yml. In the 'setup-java-set-default' job, the step 'Verify JAVA_HOME still points to Java 17' contains: `echo "Java 17 path=${{ steps.setup-java-17.outputs.path }}"` and `if [ "$JAVA_HOME" != "${{ steps.setup-java-17.outputs.path }}" ]`. The step 'Verify Java 21 outputs are set' contains: `echo "Java 21 path=${{ steps.setup-java-21.outputs.path }}"`, `echo "Java 21 version=${{ steps.setup-java-21.outputs.version }}"`, `if [ -z "${{ steps.setup-java-21.outputs.path }}" ]`, and `if [ -z "${{ steps.setup-java-21.outputs.version }}" ]`. These ${{ }} expressions are expanded by the template engine before the shell sees them, allowing injection of shell metacharacters.
+
+Locations:
+
+- `.github/workflows/e2e-versions.yml:560`
+- `.github/workflows/e2e-versions.yml:580`
 
 ## Iteration Notes
 
 ### Iteration 1
 
-**Fixes applied:** unpinned-uses
+**Fixes applied:** unpinned-uses, script-injection
 
 **Notes:**
 
-Pinned all unpinned action references to full commit SHAs across 13 workflow files:
-- actions/reusable-workflows@main → @4735e71081024a944852f4ab9d1495b6dd2de8f2 in basic-validation.yml, check-dist.yml, codeql-analysis.yml, licensed.yml, update-config-files.yml
-- actions/checkout@v7 → @9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 in e2e-cache-dependency-path.yml (3x), e2e-cache.yml (6x), e2e-local-file.yml (3x), e2e-publishing.yml (4x), e2e-versions.yml (16x), publish-immutable-actions.yml, zizmor.yml
-- actions/checkout@v6 → @df4cb1c069e1874edd31b4311f1884172cec0e10 in e2e-versions.yml (setup-java-set-default job)
-- actions/publish-immutable-action@v0.0.4 → @4bc8754ffc40f27910afb20287dbbbb675a4e978 in publish-immutable-actions.yml
-- actions/publish-action@v0.4.0 → @23f4c6f12633a2da8f44938b71fde9afec138fb4 in release-new-action-version.yml
-- actions/setup-python@v6 → @ece7cb06caefa5fff74198d8649806c4678c61a1 in zizmor.yml
-- github/codeql-action/upload-sarif@v4 → @99df26d4f13ea111d4ec1a7dddef6063f76b97e9 in zizmor.yml
-All SHAs were resolved using lookup_action_sha. Original tag names preserved as comments.
-
-### Iteration 2
-
-**Fixes applied:** script-injection
-
-**Notes:**
-
-Fixed script injection in the setup-java-set-default job in .github/workflows/e2e-versions.yml. Moved all ${{ steps.setup-java-17.outputs.path }}, ${{ steps.setup-java-21.outputs.path }}, and ${{ steps.setup-java-21.outputs.version }} expressions out of run: shell strings and into env: blocks (as JAVA_17_PATH, JAVA_21_PATH, and JAVA_21_VERSION respectively). The shell scripts now reference these as plain environment variables, preventing command injection via shell metacharacters in step outputs.
+Fixed all unpinned action references by replacing mutable tags/branches with full commit SHAs across all 13 workflow files: actions/checkout@v7 → SHA 9c091bb, actions/checkout@v6 → SHA df4cb1c, actions/reusable-workflows@main → SHA 4735e71, actions/publish-immutable-action@v0.0.4 → SHA 4bc8754, actions/publish-action@v0.4.0 → SHA 23f4c6f, actions/setup-python@v6 → SHA ece7cb0, github/codeql-action/upload-sarif@v4 → SHA 99df26d. Fixed script injection in e2e-versions.yml setup-java-set-default job by moving ${{ steps.setup-java-17.outputs.path }}, ${{ steps.setup-java-21.outputs.path }}, and ${{ steps.setup-java-21.outputs.version }} expressions out of run: shell strings and into env: blocks, referencing them as plain environment variables ($JAVA_17_PATH, $JAVA_21_PATH, $JAVA_21_VERSION) in the shell scripts. Also repaired zizmor.yml which was accidentally corrupted during editing.
 

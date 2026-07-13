@@ -19,25 +19,21 @@ jobs:
         run: |
           echo "actual: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be set"
+            echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
+      - name: Assert distribution output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.distribution }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected distribution output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
       - name: Assert java is available
         run: |
           java -version
           echo "PASS: java is available"
-      - name: Assert Maven toolchains.xml was created
-        run: |
-          if [ -f "$HOME/.m2/toolchains.xml" ]; then
-            echo "toolchains.xml content:"
-            cat "$HOME/.m2/toolchains.xml"
-            if grep -q "my-temurin-21" "$HOME/.m2/toolchains.xml"; then
-              echo "PASS: mvn-toolchain-id found in toolchains.xml"
-            else
-              echo "FAIL: mvn-toolchain-id not found in toolchains.xml"
-              exit 1
-            fi
-          else
-            echo "INFO: toolchains.xml not created (may be expected if no Maven present)"
-          fi

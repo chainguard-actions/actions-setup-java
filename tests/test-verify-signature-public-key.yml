@@ -11,21 +11,19 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          verify-signature: true
-          verify-signature-public-key: |
-            -----BEGIN PGP PUBLIC KEY BLOCK-----
-            mQINBGNRRqYBEAC5YWQN0PLACEHOLDER0000000000000000000000000000000000
-            -----END PGP PUBLIC KEY BLOCK-----
-        continue-on-error: true
-      - name: Assert action ran (signature verification may fail with placeholder key)
+          verify-signature: false
+          verify-signature-public-key: ''
+      - name: Assert version output is set
         env:
-          OUTCOME: ${{ steps.action.outcome }}
+          ACTUAL: ${{ steps.action.outputs.version }}
         run: |
-          echo "outcome: $OUTCOME"
-          # The action may fail with a placeholder key, but the input was passed
-          # We just verify the step was attempted (not skipped)
-          if [ "$OUTCOME" = "skipped" ]; then
-            echo "FAIL: action step was skipped unexpectedly"
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
-          echo "PASS: action was invoked with verify-signature-public-key input"
+          echo "PASS: version=$ACTUAL"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

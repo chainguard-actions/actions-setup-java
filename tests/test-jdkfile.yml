@@ -1,4 +1,4 @@
-name: Test cache and cache-dependency-path inputs
+name: Test jdkFile input
 on:
   workflow_dispatch:
 jobs:
@@ -6,13 +6,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download JDK archive for jdkFile test
+        run: |
+          # Download a small Temurin JDK 21 tarball for use with jdkFile
+          curl -fsSL -o /tmp/jdk21.tar.gz \
+            "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          echo "Downloaded JDK archive"
+          ls -lh /tmp/jdk21.tar.gz
       - id: action
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'maven'
-          cache-dependency-path: 'hardened/tests/fixtures/maven/pom.xml'
+          jdkFile: '/tmp/jdk21.tar.gz'
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.action.outputs.version }}
@@ -23,13 +29,13 @@ jobs:
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
-      - name: Assert distribution output is set
+      - name: Assert path output is set
         env:
-          ACTUAL: ${{ steps.action.outputs.distribution }}
+          ACTUAL: ${{ steps.action.outputs.path }}
         run: |
           echo "actual: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected distribution output to be non-empty"
+            echo "FAIL: expected path output to be non-empty"
             exit 1
           fi
-          echo "PASS: distribution=$ACTUAL"
+          echo "PASS: path=$ACTUAL"

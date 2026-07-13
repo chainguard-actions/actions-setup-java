@@ -18,20 +18,20 @@ jobs:
         run: |
           echo "actual: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be set"
+            echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
-      - name: Assert distribution output is set
+      - name: Assert path output is set
         env:
-          ACTUAL: ${{ steps.action.outputs.distribution }}
+          ACTUAL: ${{ steps.action.outputs.path }}
         run: |
           echo "actual: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected distribution output to be set"
+            echo "FAIL: expected path output to be non-empty"
             exit 1
           fi
-          echo "PASS: distribution=$ACTUAL"
+          echo "PASS: path=$ACTUAL"
       - name: Assert java is available
         run: |
           java -version
