@@ -1,0 +1,80 @@
+name: Test Java setup with set-default false
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ''
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # First install a default Java
+      - id: setup-java-default
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          token: ''
+      - name: Record default JAVA_HOME
+        id: record-default
+        run: |
+          echo "default_java_home=$JAVA_HOME" >> $GITHUB_OUTPUT
+          echo "Default JAVA_HOME: $JAVA_HOME"
+      # Now install Java 21 without making it the default
+      - id: setup-java-non-default
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          set-default: 'false'
+          token: ''
+      - name: Assert non-default version output
+        env:
+          ACTUAL: ${{ steps.setup-java-non-default.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "^21"; then
+            echo "FAIL: expected version starting with 21, got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert path output for non-default Java
+        env:
+          ACTUAL: ${{ steps.setup-java-non-default.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+      - name: Assert JAVA_HOME still points to Java 17 (default unchanged)
+        env:
+          DEFAULT_JAVA_HOME: ${{ steps.record-default.outputs.default_java_home }}
+        run: |
+          echo "Current JAVA_HOME: $JAVA_HOME"
+          echo "Default JAVA_HOME: $DEFAULT_JAVA_HOME"
+          if [ "$JAVA_HOME" != "$DEFAULT_JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME changed when set-default=false. Expected $DEFAULT_JAVA_HOME, got $JAVA_HOME"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME unchanged as expected"
+      - name: Assert JAVA_HOME_21 env var is set
+        run: |
+          # When set-default=false, JAVA_HOME_<major>_<arch> should still be set
+          echo "All JAVA_HOME vars:"
+          env | grep JAVA_HOME || true
+          # Check that some JAVA_HOME_21 variant exists
+          if ! env | grep -q "JAVA_HOME_21"; then
+            echo "FAIL: JAVA_HOME_21_* env var not found"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME_21 variant is set"

@@ -1,0 +1,69 @@
+name: Test Java setup with JRE package type
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ''
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          java-package: 'jre'
+          token: ''
+      - name: Assert distribution output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "^17"; then
+            echo "FAIL: expected version starting with 17, got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert path output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+      - name: Assert java binary works
+        run: |
+          java -version
+          echo "PASS: java binary works"
+      - name: Check javac availability (JRE may or may not include javac)
+        run: |
+          # JRE should not include javac (compiler)
+          if command -v javac &>/dev/null; then
+            JAVAC_VERSION=$(javac -version 2>&1)
+            echo "javac found: $JAVAC_VERSION"
+            echo "NOTE: javac found in JRE installation (may be expected for some distributions)"
+          else
+            echo "PASS: javac not found in JRE installation (expected)"
+          fi

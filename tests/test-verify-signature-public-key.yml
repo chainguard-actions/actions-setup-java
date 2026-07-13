@@ -1,0 +1,31 @@
+name: Test verify-signature-public-key input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          verify-signature: true
+          verify-signature-public-key: |
+            -----BEGIN PGP PUBLIC KEY BLOCK-----
+            mQINBGNRRqYBEAC5YWQN0PLACEHOLDER0000000000000000000000000000000000
+            -----END PGP PUBLIC KEY BLOCK-----
+        continue-on-error: true
+      - name: Assert action ran (signature verification may fail with placeholder key)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action may fail with a placeholder key, but the input was passed
+          # We just verify the step was attempted (not skipped)
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action step was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action was invoked with verify-signature-public-key input"

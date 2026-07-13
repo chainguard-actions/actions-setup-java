@@ -1,0 +1,38 @@
+name: Test architecture input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          architecture: 'x64'
+      - name: Assert version output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be set"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert distribution output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.distribution }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected distribution output to be set"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

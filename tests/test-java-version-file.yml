@@ -1,0 +1,67 @@
+name: Test Java setup from .java-version file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ''
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create .java-version file
+        run: |
+          echo "21" > $GITHUB_WORKSPACE/.java-version
+          cat $GITHUB_WORKSPACE/.java-version
+      - id: setup-java
+        uses: .
+        with:
+          java-version-file: '.java-version'
+          distribution: 'temurin'
+          token: ''
+      - name: Assert distribution output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+      - name: Assert version output is Java 21
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "^21"; then
+            echo "FAIL: expected version starting with 21, got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert path output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+      - name: Assert java binary is Java 21
+        run: |
+          VERSION=$(java -version 2>&1 | head -1)
+          echo "java version output: $VERSION"
+          if ! echo "$VERSION" | grep -q "21"; then
+            echo "FAIL: expected Java 21, got: $VERSION"
+            exit 1
+          fi
+          echo "PASS: Java 21 confirmed"
