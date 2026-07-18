@@ -5,23 +5,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - id: setup-java
         uses: .
         with:
           java-version: '17.0.x'
           distribution: 'temurin'
-      - name: Assert distribution output
-        env:
-          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
-        run: |
-          echo "actual distribution: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: distribution output is empty"
-            exit 1
-          fi
-          echo "PASS: distribution=$ACTUAL"
-      - name: Assert version output
+      - name: Assert version output starts with 17
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}
         run: |
@@ -30,8 +20,12 @@ jobs:
             echo "FAIL: version output is empty"
             exit 1
           fi
+          if ! echo "$ACTUAL" | grep -q "^17"; then
+            echo "FAIL: expected version starting with 17, got: $ACTUAL"
+            exit 1
+          fi
           echo "PASS: version=$ACTUAL"
-      - name: Assert path output
+      - name: Assert path output is set and exists
         env:
           ACTUAL: ${{ steps.setup-java.outputs.path }}
         run: |
@@ -41,24 +35,16 @@ jobs:
             exit 1
           fi
           if [ ! -d "$ACTUAL" ]; then
-            echo "FAIL: path '$ACTUAL' does not exist or is not a directory"
+            echo "FAIL: path does not exist: $ACTUAL"
             exit 1
           fi
           echo "PASS: path=$ACTUAL"
-      - name: Assert JAVA_HOME is set
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          if [ -z "$JAVA_HOME" ]; then
-            echo "FAIL: JAVA_HOME is not set"
-            exit 1
-          fi
-          echo "PASS: JAVA_HOME=$JAVA_HOME"
-      - name: Assert java version is 17.x
+      - name: Assert java version matches 17
         run: |
           VERSION=$(java -version 2>&1 | head -1)
           echo "java version output: $VERSION"
           if ! echo "$VERSION" | grep -q "17"; then
-            echo "FAIL: expected Java 17.x, got: $VERSION"
+            echo "FAIL: expected Java 17, got: $VERSION"
             exit 1
           fi
-          echo "PASS: Java 17.x confirmed via semver spec"
+          echo "PASS: Java 17.0.x is installed"

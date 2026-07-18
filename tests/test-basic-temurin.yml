@@ -1,4 +1,4 @@
-name: Test basic setup-java with temurin distribution
+name: Test basic setup-java with Temurin distribution
 on:
   workflow_dispatch:
 jobs:
@@ -11,54 +11,54 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Assert version output is set
+      - name: Assert distribution output
         env:
-          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
         run: |
-          echo "actual version: $ACTUAL_VERSION"
-          if [ -z "$ACTUAL_VERSION" ]; then
-            echo "FAIL: version output is empty"
-            exit 1
-          fi
-          echo "PASS: version output is '$ACTUAL_VERSION'"
-      - name: Assert distribution output is set
-        env:
-          ACTUAL_DIST: ${{ steps.setup-java.outputs.distribution }}
-        run: |
-          echo "actual distribution: $ACTUAL_DIST"
-          if [ -z "$ACTUAL_DIST" ]; then
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
             echo "FAIL: distribution output is empty"
             exit 1
           fi
-          echo "PASS: distribution output is '$ACTUAL_DIST'"
-      - name: Assert path output is set
+          echo "PASS: distribution=$ACTUAL"
+      - name: Assert version output
         env:
-          ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
         run: |
-          echo "actual path: $ACTUAL_PATH"
-          if [ -z "$ACTUAL_PATH" ]; then
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert path output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
             echo "FAIL: path output is empty"
             exit 1
           fi
-          if [ ! -d "$ACTUAL_PATH" ]; then
-            echo "FAIL: path '$ACTUAL_PATH' does not exist or is not a directory"
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
             exit 1
           fi
-          echo "PASS: path output is '$ACTUAL_PATH'"
-      - name: Assert java is on PATH
-        run: |
-          which java
-          java -version
-          echo "PASS: java is available on PATH"
+          echo "PASS: path=$ACTUAL"
       - name: Assert JAVA_HOME is set
         run: |
-          echo "JAVA_HOME: $JAVA_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
           if [ -z "$JAVA_HOME" ]; then
             echo "FAIL: JAVA_HOME is not set"
             exit 1
           fi
           if [ ! -d "$JAVA_HOME" ]; then
-            echo "FAIL: JAVA_HOME '$JAVA_HOME' does not exist"
+            echo "FAIL: JAVA_HOME directory does not exist: $JAVA_HOME"
             exit 1
           fi
-          echo "PASS: JAVA_HOME is '$JAVA_HOME'"
+          echo "PASS: JAVA_HOME=$JAVA_HOME"
+      - name: Assert java binary is on PATH
+        run: |
+          which java
+          java -version
+          echo "PASS: java is on PATH"

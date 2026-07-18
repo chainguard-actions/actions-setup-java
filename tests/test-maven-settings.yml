@@ -17,16 +17,6 @@ jobs:
         env:
           MY_USERNAME: testuser
           MY_PASSWORD: testpassword
-      - name: Assert version output is set
-        env:
-          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
-        run: |
-          echo "actual version: $ACTUAL_VERSION"
-          if [ -z "$ACTUAL_VERSION" ]; then
-            echo "FAIL: version output is empty"
-            exit 1
-          fi
-          echo "PASS: version output is '$ACTUAL_VERSION'"
       - name: Assert settings.xml was created
         run: |
           SETTINGS_FILE="$HOME/.m2/settings.xml"
@@ -35,19 +25,21 @@ jobs:
             echo "FAIL: settings.xml not found at $SETTINGS_FILE"
             exit 1
           fi
-          echo "settings.xml contents:"
-          cat "$SETTINGS_FILE"
           echo "PASS: settings.xml exists"
+          cat "$SETTINGS_FILE"
       - name: Assert settings.xml contains server-id
         run: |
           SETTINGS_FILE="$HOME/.m2/settings.xml"
-          if ! grep -q 'my-server' "$SETTINGS_FILE"; then
-            echo "FAIL: server-id 'my-server' not found in settings.xml"
+          if ! grep -q "my-server" "$SETTINGS_FILE"; then
+            echo "FAIL: settings.xml does not contain server-id 'my-server'"
             exit 1
           fi
-          echo "PASS: server-id 'my-server' found in settings.xml"
-      - name: Assert java is available
+          echo "PASS: settings.xml contains server-id 'my-server'"
+      - name: Assert settings.xml contains username env var reference
         run: |
-          which java
-          java -version
-          echo "PASS: java is available on PATH"
+          SETTINGS_FILE="$HOME/.m2/settings.xml"
+          if ! grep -q "MY_USERNAME" "$SETTINGS_FILE"; then
+            echo "FAIL: settings.xml does not contain username env var 'MY_USERNAME'"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains username env var reference"

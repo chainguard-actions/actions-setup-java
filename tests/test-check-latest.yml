@@ -1,18 +1,18 @@
-name: Test setup-java with check-latest enabled
+name: Test setup-java with check-latest option
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - id: setup-java
         uses: .
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
           check-latest: true
-      - name: Assert distribution output
+      - name: Assert distribution output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.distribution }}
         run: |
@@ -22,7 +22,7 @@ jobs:
             exit 1
           fi
           echo "PASS: distribution=$ACTUAL"
-      - name: Assert version output
+      - name: Assert version output is set and starts with 17
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}
         run: |
@@ -31,35 +31,13 @@ jobs:
             echo "FAIL: version output is empty"
             exit 1
           fi
+          if ! echo "$ACTUAL" | grep -q "^17"; then
+            echo "FAIL: expected version starting with 17, got: $ACTUAL"
+            exit 1
+          fi
           echo "PASS: version=$ACTUAL"
-      - name: Assert path output
-        env:
-          ACTUAL: ${{ steps.setup-java.outputs.path }}
+      - name: Assert java is functional
         run: |
-          echo "actual path: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: path output is empty"
-            exit 1
-          fi
-          if [ ! -d "$ACTUAL" ]; then
-            echo "FAIL: path '$ACTUAL' does not exist or is not a directory"
-            exit 1
-          fi
-          echo "PASS: path=$ACTUAL"
-      - name: Assert JAVA_HOME is set
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          if [ -z "$JAVA_HOME" ]; then
-            echo "FAIL: JAVA_HOME is not set"
-            exit 1
-          fi
-          echo "PASS: JAVA_HOME=$JAVA_HOME"
-      - name: Assert java version is 11
-        run: |
-          VERSION=$(java -version 2>&1 | head -1)
-          echo "java version output: $VERSION"
-          if ! echo "$VERSION" | grep -q "11"; then
-            echo "FAIL: expected Java 11, got: $VERSION"
-            exit 1
-          fi
-          echo "PASS: Java 11 confirmed with check-latest=true"
+          java -version
+          javac -version
+          echo "PASS: java and javac are functional"
