@@ -8,7 +8,7 @@
 
 **Test Policy SHA:** `843adf9e4b8f85d0c08b27b9d0b09dd094b54702`
 
-**Harden Agent Version:** `1`
+**Harden Agent Version:** `2`
 
 Action **actions--setup-java/v5.3.0** was hardened automatically. 3 finding(s) were identified and resolved across 1 iteration(s).
 
@@ -16,39 +16,51 @@ Action **actions--setup-java/v5.3.0** was hardened automatically. 3 finding(s) w
 
 ### unpinned-uses (severity: high)
 
-Multiple workflow files reference actions using mutable tags/branches instead of pinned full-length SHA commit hashes. This exposes the workflow to supply-chain attacks if the referenced tag is moved or the branch is updated. Failing references include: actions/checkout@v6 (all e2e workflows), actions/reusable-workflows/...@main (basic-validation.yml, check-dist.yml, codeql-analysis.yml, licensed.yml, update-config-files.yml), actions/publish-immutable-action@v0.0.4 (publish-immutable-actions.yml), actions/publish-action@v0.4.0 (release-new-action-version.yml).
+Multiple workflow files reference external actions and reusable workflows using mutable tags or branch names instead of full 40-character SHA digests, making them vulnerable to supply-chain attacks. Failing references include: `actions/checkout@v6`, `actions/publish-immutable-action@v0.0.4`, `actions/publish-action@v0.4.0`, and `actions/reusable-workflows/...@main` across all workflow files.
 
 Locations:
 
-- `.github/workflows/basic-validation.yml:16`
-- `.github/workflows/check-dist.yml:15`
-- `.github/workflows/codeql-analysis.yml:14`
-- `.github/workflows/e2e-cache-dependency-path.yml:22`
-- `.github/workflows/e2e-cache.yml:22`
-- `.github/workflows/e2e-local-file.yml:23`
-- `.github/workflows/e2e-publishing.yml:24`
-- `.github/workflows/e2e-versions.yml:68`
+- `.github/workflows/basic-validation.yml:13`
+- `.github/workflows/check-dist.yml:14`
+- `.github/workflows/codeql-analysis.yml:12`
 - `.github/workflows/licensed.yml:13`
-- `.github/workflows/publish-immutable-actions.yml:17`
-- `.github/workflows/release-new-action-version.yml:28`
-- `.github/workflows/update-config-files.yml:13`
+- `.github/workflows/update-config-files.yml:10`
+- `.github/workflows/e2e-cache-dependency-path.yml:24`
+- `.github/workflows/e2e-cache.yml:30`
+- `.github/workflows/e2e-local-file.yml:24`
+- `.github/workflows/e2e-publishing.yml:26`
+- `.github/workflows/e2e-versions.yml:66`
+- `.github/workflows/publish-immutable-actions.yml:18`
+- `.github/workflows/publish-immutable-actions.yml:21`
+- `.github/workflows/release-new-action-version.yml:26`
 
 ### script-injection (severity: high)
 
-Multiple run: blocks directly interpolate GitHub Actions expressions (${{ ... }}) into shell command strings, violating rule (a). This allows expression values to be interpreted as shell code before the shell ever sees them. Offending lines include: `run: bash __tests__/verify-java.sh "${{ matrix.version }}" "${{ steps.setup-java.outputs.path }}"` in e2e-versions.yml (multiple jobs), and `run: bash __tests__/verify-java.sh "11.0.10" "${{ steps.setup-java.outputs.path }}"` in e2e-local-file.yml. The `steps.setup-java.outputs.path` and `matrix.version` values are workflow-controlled and should be passed via env vars with double-quoted shell expansions instead.
+Multiple `run:` blocks directly interpolate GitHub Actions expressions into shell command strings (sub-rule a). In `e2e-versions.yml`, `${{ matrix.version }}` and `${{ steps.setup-java.outputs.path }}` are interpolated directly into `run: bash __tests__/verify-java.sh "${{ matrix.version }}" "${{ steps.setup-java.outputs.path }}"` across 14 steps. In `e2e-local-file.yml`, `${{ steps.setup-java.outputs.path }}` is interpolated directly into `run: bash __tests__/verify-java.sh ... "${{ steps.setup-java.outputs.path }}"` across 3 steps. These expressions are expanded by the YAML template engine before the shell sees them, allowing injection of shell metacharacters.
 
 Locations:
 
 - `.github/workflows/e2e-versions.yml:76`
-- `.github/workflows/e2e-versions.yml:100`
-- `.github/workflows/e2e-versions.yml:130`
-- `.github/workflows/e2e-local-file.yml:43`
-- `.github/workflows/e2e-local-file.yml:72`
-- `.github/workflows/e2e-local-file.yml:101`
+- `.github/workflows/e2e-versions.yml:97`
+- `.github/workflows/e2e-versions.yml:131`
+- `.github/workflows/e2e-versions.yml:157`
+- `.github/workflows/e2e-versions.yml:193`
+- `.github/workflows/e2e-versions.yml:215`
+- `.github/workflows/e2e-versions.yml:234`
+- `.github/workflows/e2e-versions.yml:253`
+- `.github/workflows/e2e-versions.yml:313`
+- `.github/workflows/e2e-versions.yml:337`
+- `.github/workflows/e2e-versions.yml:360`
+- `.github/workflows/e2e-versions.yml:390`
+- `.github/workflows/e2e-versions.yml:416`
+- `.github/workflows/e2e-versions.yml:447`
+- `.github/workflows/e2e-local-file.yml:49`
+- `.github/workflows/e2e-local-file.yml:79`
+- `.github/workflows/e2e-local-file.yml:109`
 
 ### missing-permissions (severity: medium)
 
-Multiple workflow files have no top-level `permissions:` key and no job-level `permissions:` keys on any of their jobs. Without explicit permissions, workflows inherit the default repository permissions (which may be read/write for contents), violating the principle of least privilege.
+Ten workflow files have no top-level `permissions:` key and no job-level `permissions:` keys on any of their jobs. Without explicit permissions, workflows inherit the default (potentially broad) repository permissions. Affected files: basic-validation.yml, check-dist.yml, codeql-analysis.yml, e2e-cache-dependency-path.yml, e2e-cache.yml, e2e-local-file.yml, e2e-publishing.yml, e2e-versions.yml, licensed.yml, update-config-files.yml.
 
 Locations:
 
@@ -71,15 +83,5 @@ Locations:
 
 **Notes:**
 
-Fixed all three findings across 12 workflow files:
-
-1. unpinned-uses: Pinned all action references to full SHA hashes:
-   - actions/checkout@v6 → @df4cb1c069e1874edd31b4311f1884172cec0e10 (all e2e workflows)
-   - actions/reusable-workflows@main → @09976383aa8780d306ee271bd21bb77a54fad474 (basic-validation, check-dist, codeql-analysis, licensed, update-config-files)
-   - actions/publish-immutable-action@v0.0.4 → @4bc8754ffc40f27910afb20287dbbbb675a4e978
-   - actions/publish-action@v0.4.0 → @23f4c6f12633a2da8f44938b71fde9afec138fb4
-
-2. script-injection: Moved all ${{ steps.setup-java.outputs.path }} and ${{ matrix.version }} expressions out of run: shell strings into env: blocks, referencing them as $SETUP_JAVA_PATH and $MATRIX_VERSION respectively. Fixed in e2e-versions.yml (multiple jobs) and e2e-local-file.yml (3 jobs).
-
-3. missing-permissions: Added top-level 'permissions: {}' to all 10 workflow files that lacked permissions blocks (basic-validation, check-dist, codeql-analysis, e2e-cache-dependency-path, e2e-cache, e2e-local-file, e2e-publishing, e2e-versions, licensed, update-config-files). The publish-immutable-actions.yml already had job-level permissions and release-new-action-version.yml already had top-level permissions: contents: write — both were preserved.
+Fixed all 13 unpinned action references by resolving full SHA digests via lookup_action_sha: actions/checkout@v6→df4cb1c, actions/publish-immutable-action@v0.0.4→4bc8754, actions/publish-action@v0.4.0→23f4c6f, actions/reusable-workflows@main→4735e71. Fixed all 17 script-injection instances in e2e-versions.yml (14 locations) and e2e-local-file.yml (3 locations) by moving ${{ matrix.version }} and ${{ steps.setup-java.outputs.path }} into step env: blocks as MATRIX_VERSION and SETUP_JAVA_PATH, then referencing them as plain shell variables in run: scripts. Added top-level 'permissions: contents: read' to all 10 workflow files that lacked permissions blocks (basic-validation.yml, check-dist.yml, codeql-analysis.yml, e2e-cache-dependency-path.yml, e2e-cache.yml, e2e-local-file.yml, e2e-publishing.yml, e2e-versions.yml, licensed.yml, update-config-files.yml).
 

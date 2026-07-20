@@ -1,4 +1,4 @@
-name: Test Java setup with JRE package type
+name: Test Java 21 setup with Temurin
 on:
   workflow_dispatch:
 jobs:
@@ -9,10 +9,9 @@ jobs:
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
-          java-package: 'jre'
-      - name: Assert version output is set
+      - name: Assert version output contains 21
         env:
           ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
         run: |
@@ -21,27 +20,21 @@ jobs:
             echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version output is set to $ACTUAL_VERSION"
-      - name: Assert distribution output is set
-        env:
-          ACTUAL_DIST: ${{ steps.setup-java.outputs.distribution }}
-        run: |
-          echo "actual distribution: $ACTUAL_DIST"
-          if [ -z "$ACTUAL_DIST" ]; then
-            echo "FAIL: distribution output is empty"
+          if ! echo "$ACTUAL_VERSION" | grep -q "21"; then
+            echo "FAIL: expected version to contain '21', got: $ACTUAL_VERSION"
             exit 1
           fi
-          echo "PASS: distribution output is set to $ACTUAL_DIST"
-      - name: Assert java runtime is available
+          echo "PASS: version output contains 21"
+      - name: Assert java binary reports version 21
         run: |
           JAVA_VER=$(java -version 2>&1 | head -1)
           echo "Java version string: $JAVA_VER"
-          if ! echo "$JAVA_VER" | grep -q "17"; then
-            echo "FAIL: expected Java 17 JRE but got: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 17 JRE is installed"
-      - name: Assert path output is valid
+          echo "PASS: Java 21 is installed"
+      - name: Assert path output points to valid directory
         env:
           ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
         run: |

@@ -6,11 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download JDK archive
+      - name: Download JDK archive for jdkFile test
         run: |
-          # Download a small Temurin JDK 17 tarball for x64 Linux
+          # Download a small JRE/JDK tarball to use as jdkFile
+          # Using Temurin JDK 17 for linux x64
           curl -L -o /tmp/jdk17.tar.gz \
-            "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz"
+            "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.13%2B11/OpenJDK17U-jdk_x64_linux_hotspot_17.0.13_11.tar.gz"
           echo "Downloaded JDK archive"
           ls -lh /tmp/jdk17.tar.gz
       - id: setup-java
@@ -29,7 +30,7 @@ jobs:
             echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
-          echo "PASS"
+          echo "PASS: version=$ACTUAL"
       - name: Assert path output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.path }}
@@ -39,8 +40,8 @@ jobs:
             echo "FAIL: expected path output to be non-empty"
             exit 1
           fi
-          echo "PASS"
-      - name: Assert java is available
+          echo "PASS: path=$ACTUAL"
+      - name: Assert java is on PATH
         run: |
           java -version
-          echo "PASS"
+          echo "PASS: java is available"

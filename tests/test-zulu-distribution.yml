@@ -1,4 +1,4 @@
-name: Test Java setup with JRE package type
+name: Test Java setup with Zulu distribution
 on:
   workflow_dispatch:
 jobs:
@@ -9,9 +9,8 @@ jobs:
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          java-package: 'jre'
+          java-version: '11'
+          distribution: 'zulu'
       - name: Assert version output is set
         env:
           ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
@@ -32,26 +31,24 @@ jobs:
             exit 1
           fi
           echo "PASS: distribution output is set to $ACTUAL_DIST"
-      - name: Assert java runtime is available
+      - name: Assert java binary reports version 11
         run: |
           JAVA_VER=$(java -version 2>&1 | head -1)
           echo "Java version string: $JAVA_VER"
-          if ! echo "$JAVA_VER" | grep -q "17"; then
-            echo "FAIL: expected Java 17 JRE but got: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "11"; then
+            echo "FAIL: expected Java 11 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 17 JRE is installed"
-      - name: Assert path output is valid
-        env:
-          ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
+          echo "PASS: Java 11 is installed"
+      - name: Assert JAVA_HOME is set and valid
         run: |
-          echo "actual path: $ACTUAL_PATH"
-          if [ -z "$ACTUAL_PATH" ]; then
-            echo "FAIL: path output is empty"
+          echo "JAVA_HOME: $JAVA_HOME"
+          if [ -z "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME is not set"
             exit 1
           fi
-          if [ ! -d "$ACTUAL_PATH" ]; then
-            echo "FAIL: path directory does not exist: $ACTUAL_PATH"
+          if [ ! -d "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME directory does not exist: $JAVA_HOME"
             exit 1
           fi
-          echo "PASS: path output is valid"
+          echo "PASS: JAVA_HOME is set to $JAVA_HOME"

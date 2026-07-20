@@ -1,0 +1,40 @@
+name: Test Java setup with custom settings path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create custom settings directory
+        run: mkdir -p /tmp/custom-m2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          settings-path: '/tmp/custom-m2'
+          server-id: 'custom-server'
+      - name: Assert settings.xml was created in custom path
+        run: |
+          SETTINGS_FILE="/tmp/custom-m2/settings.xml"
+          echo "Checking for settings.xml at: $SETTINGS_FILE"
+          if [ ! -f "$SETTINGS_FILE" ]; then
+            echo "FAIL: settings.xml was not created at custom path $SETTINGS_FILE"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists at custom path"
+          cat "$SETTINGS_FILE"
+      - name: Assert settings.xml contains custom server-id
+        run: |
+          SETTINGS_FILE="/tmp/custom-m2/settings.xml"
+          if ! grep -q "custom-server" "$SETTINGS_FILE"; then
+            echo "FAIL: settings.xml does not contain server-id 'custom-server'"
+            cat "$SETTINGS_FILE"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains server-id 'custom-server'"
+      - name: Assert java is functional
+        run: |
+          java -version 2>&1
+          echo "PASS: java command works"

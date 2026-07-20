@@ -1,4 +1,4 @@
-name: Test Java setup with JRE package type
+name: Test Java setup with semver version specification
 on:
   workflow_dispatch:
 jobs:
@@ -9,9 +9,8 @@ jobs:
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
+          java-version: '17.0'
           distribution: 'temurin'
-          java-package: 'jre'
       - name: Assert version output is set
         env:
           ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
@@ -22,26 +21,26 @@ jobs:
             exit 1
           fi
           echo "PASS: version output is set to $ACTUAL_VERSION"
-      - name: Assert distribution output is set
+      - name: Assert version starts with 17
         env:
-          ACTUAL_DIST: ${{ steps.setup-java.outputs.distribution }}
+          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
         run: |
-          echo "actual distribution: $ACTUAL_DIST"
-          if [ -z "$ACTUAL_DIST" ]; then
-            echo "FAIL: distribution output is empty"
+          echo "actual version: $ACTUAL_VERSION"
+          if ! echo "$ACTUAL_VERSION" | grep -q "^17"; then
+            echo "FAIL: expected version to start with '17', got: $ACTUAL_VERSION"
             exit 1
           fi
-          echo "PASS: distribution output is set to $ACTUAL_DIST"
-      - name: Assert java runtime is available
+          echo "PASS: version starts with 17"
+      - name: Assert java binary reports version 17
         run: |
           JAVA_VER=$(java -version 2>&1 | head -1)
           echo "Java version string: $JAVA_VER"
           if ! echo "$JAVA_VER" | grep -q "17"; then
-            echo "FAIL: expected Java 17 JRE but got: $JAVA_VER"
+            echo "FAIL: expected Java 17 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 17 JRE is installed"
-      - name: Assert path output is valid
+          echo "PASS: Java 17 is installed via semver spec"
+      - name: Assert path output is set and valid
         env:
           ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
         run: |
@@ -55,3 +54,14 @@ jobs:
             exit 1
           fi
           echo "PASS: path output is valid"
+      - name: Assert JAVA_HOME matches path output
+        env:
+          ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "JAVA_HOME: $JAVA_HOME"
+          echo "path output: $ACTUAL_PATH"
+          if [ "$JAVA_HOME" != "$ACTUAL_PATH" ]; then
+            echo "FAIL: JAVA_HOME ($JAVA_HOME) does not match path output ($ACTUAL_PATH)"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME matches path output"

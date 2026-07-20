@@ -6,10 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Generate test GPG key
+      - name: Generate a test GPG key
         id: gen-gpg
         run: |
-          # Generate a test GPG key non-interactively
+          # Generate a test GPG key without passphrase for testing
           gpg --batch --gen-key <<EOF
           %no-protection
           Key-Type: RSA
@@ -19,21 +19,18 @@ jobs:
           Name-Real: Test User
           Name-Email: test@example.com
           Expire-Date: 0
-          %commit
           EOF
-          # Export the private key as base64
-          KEY_ID=$(gpg --list-secret-keys --keyid-format LONG test@example.com | grep sec | awk '{print $2}' | cut -d'/' -f2)
-          echo "key_id=$KEY_ID" >> $GITHUB_OUTPUT
-          GPG_PRIVATE_KEY=$(gpg --armor --export-secret-keys "$KEY_ID")
-          echo "gpg_private_key<<GPGEOF" >> $GITHUB_OUTPUT
-          echo "$GPG_PRIVATE_KEY" >> $GITHUB_OUTPUT
+          # Export the private key
+          GPG_KEY=$(gpg --armor --export-secret-keys test@example.com)
+          echo "gpg_key<<GPGEOF" >> $GITHUB_OUTPUT
+          echo "$GPG_KEY" >> $GITHUB_OUTPUT
           echo "GPGEOF" >> $GITHUB_OUTPUT
       - id: setup-java
         uses: .
         with:
           java-version: '17'
           distribution: 'temurin'
-          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_private_key }}
+          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_key }}
           gpg-passphrase: 'GPG_PASSPHRASE'
         env:
           GPG_PASSPHRASE: ''
@@ -46,8 +43,8 @@ jobs:
             echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
-          echo "PASS"
-      - name: Assert java is available
+          echo "PASS: version=$ACTUAL"
+      - name: Assert java is on PATH
         run: |
           java -version
-          echo "PASS"
+          echo "PASS: java is available"

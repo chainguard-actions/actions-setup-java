@@ -11,7 +11,8 @@ on:
     paths-ignore:
       - '**.md'
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   setup-java-local-file-adopt:

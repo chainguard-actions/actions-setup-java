@@ -21,7 +21,7 @@ jobs:
             echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
-          echo "PASS"
+          echo "PASS: version=$ACTUAL"
       - name: Assert path output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.path }}
@@ -31,8 +31,8 @@ jobs:
             echo "FAIL: expected path output to be non-empty"
             exit 1
           fi
-          echo "PASS"
-      - name: Assert java is available
+          echo "PASS: path=$ACTUAL"
+      - name: Assert java is on PATH
         run: |
           java -version
-          echo "PASS"
+          echo "PASS: java is available"
