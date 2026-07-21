@@ -1,0 +1,50 @@
+name: Test setup-java with overwrite-settings false
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create existing settings.xml with custom content
+        run: |
+          mkdir -p "$HOME/.m2"
+          cat > "$HOME/.m2/settings.xml" << 'EOF'
+          <settings>
+            <servers>
+              <server>
+                <id>existing-server</id>
+                <username>existing-user</username>
+                <password>existing-pass</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+          echo "Created settings.xml:"
+          cat "$HOME/.m2/settings.xml"
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          overwrite-settings: 'false'
+      - name: Assert Java is installed
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if [ -z "$ACTUAL_VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: Java is installed"
+      - name: Assert existing settings.xml was not overwritten
+        run: |
+          SETTINGS_FILE="$HOME/.m2/settings.xml"
+          echo "Current settings.xml content:"
+          cat "$SETTINGS_FILE"
+          if ! grep -q "existing-server" "$SETTINGS_FILE"; then
+            echo "FAIL: settings.xml was overwritten (existing-server not found)"
+            exit 1
+          fi
+          echo "PASS: settings.xml was not overwritten, existing content preserved"

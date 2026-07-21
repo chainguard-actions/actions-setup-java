@@ -1,4 +1,4 @@
-name: Test setup-java with java-version-file
+name: Test setup-java with Java 21 Temurin
 on:
   workflow_dispatch:
 jobs:
@@ -6,16 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Create .java-version file
-        run: |
-          echo "17" > $GITHUB_WORKSPACE/.java-version
-          cat $GITHUB_WORKSPACE/.java-version
       - id: setup-java
         uses: .
         with:
-          java-version-file: '.java-version'
+          java-version: '21'
           distribution: 'temurin'
-      - name: Assert version output is set
+      - name: Assert version output contains 21
         env:
           ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
         run: |
@@ -24,19 +20,25 @@ jobs:
             echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version output is set to $ACTUAL_VERSION"
-      - name: Assert java is version 17
+          if ! echo "$ACTUAL_VERSION" | grep -q "21"; then
+            echo "FAIL: expected version containing '21' but got: $ACTUAL_VERSION"
+            exit 1
+          fi
+          echo "PASS: version output contains 21"
+      - name: Assert java binary reports version 21
         run: |
           java -version 2>&1
           JAVA_VER=$(java -version 2>&1 | head -1)
           echo "java version output: $JAVA_VER"
-          if ! echo "$JAVA_VER" | grep -q "17"; then
-            echo "FAIL: expected Java 17 (from .java-version file) but got: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 17 installed from .java-version file"
-      - name: Assert JAVA_HOME is set
+          echo "PASS: Java 21 is installed"
+      - name: Assert JAVA_HOME_21 env var is set
         run: |
+          # Check that JAVA_HOME_21_X64 or similar is set
+          env | grep -i "JAVA_HOME_21" || true
           echo "JAVA_HOME: $JAVA_HOME"
           if [ -z "$JAVA_HOME" ]; then
             echo "FAIL: JAVA_HOME is not set"

@@ -1,0 +1,92 @@
+name: Test setup-java with multiple Java versions
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # Install Java 11 first
+      - id: setup-java-11
+        uses: .
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+      - name: Assert Java 11 version output
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java-11.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if [ -z "$ACTUAL_VERSION" ]; then
+            echo "FAIL: version output is empty for Java 11"
+            exit 1
+          fi
+          if ! echo "$ACTUAL_VERSION" | grep -q "11"; then
+            echo "FAIL: expected version containing '11' but got: $ACTUAL_VERSION"
+            exit 1
+          fi
+          echo "PASS: Java 11 version output is correct"
+      - name: Assert Java 11 path output exists
+        env:
+          ACTUAL_PATH: ${{ steps.setup-java-11.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL_PATH"
+          if [ -z "$ACTUAL_PATH" ]; then
+            echo "FAIL: path output is empty for Java 11"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL_PATH" ]; then
+            echo "FAIL: Java 11 path directory does not exist: $ACTUAL_PATH"
+            exit 1
+          fi
+          echo "PASS: Java 11 path exists"
+      # Install Java 17 as default
+      - id: setup-java-17
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Assert Java 17 version output
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java-17.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if [ -z "$ACTUAL_VERSION" ]; then
+            echo "FAIL: version output is empty for Java 17"
+            exit 1
+          fi
+          if ! echo "$ACTUAL_VERSION" | grep -q "17"; then
+            echo "FAIL: expected version containing '17' but got: $ACTUAL_VERSION"
+            exit 1
+          fi
+          echo "PASS: Java 17 version output is correct"
+      - name: Assert Java 17 is now the default
+        run: |
+          java -version 2>&1
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "17"; then
+            echo "FAIL: expected Java 17 as default but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 17 is the default"
+      - name: Assert both Java 11 and 17 paths exist
+        env:
+          PATH_11: ${{ steps.setup-java-11.outputs.path }}
+          PATH_17: ${{ steps.setup-java-17.outputs.path }}
+        run: |
+          echo "Java 11 path: $PATH_11"
+          echo "Java 17 path: $PATH_17"
+          if [ ! -d "$PATH_11" ]; then
+            echo "FAIL: Java 11 path no longer exists: $PATH_11"
+            exit 1
+          fi
+          if [ ! -d "$PATH_17" ]; then
+            echo "FAIL: Java 17 path does not exist: $PATH_17"
+            exit 1
+          fi
+          if [ "$PATH_11" = "$PATH_17" ]; then
+            echo "FAIL: Java 11 and 17 paths are the same: $PATH_11"
+            exit 1
+          fi
+          echo "PASS: Both Java 11 and 17 paths exist and are different"

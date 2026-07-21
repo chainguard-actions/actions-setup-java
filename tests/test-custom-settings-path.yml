@@ -1,0 +1,38 @@
+name: Test setup-java with custom settings-path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create custom settings directory
+        run: mkdir -p /tmp/custom-maven-settings
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          settings-path: '/tmp/custom-maven-settings'
+      - name: Assert Java is installed
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if [ -z "$ACTUAL_VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: Java is installed"
+      - name: Assert settings.xml was created in custom path
+        run: |
+          SETTINGS_FILE="/tmp/custom-maven-settings/settings.xml"
+          echo "Checking for settings.xml at: $SETTINGS_FILE"
+          if [ ! -f "$SETTINGS_FILE" ]; then
+            echo "FAIL: settings.xml not found at custom path $SETTINGS_FILE"
+            ls -la /tmp/custom-maven-settings/ || true
+            exit 1
+          fi
+          echo "settings.xml content:"
+          cat "$SETTINGS_FILE"
+          echo "PASS: settings.xml exists at custom path"

@@ -1,0 +1,66 @@
+name: Test setup-java with Zulu distribution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+      - name: Assert version output is set
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if [ -z "$ACTUAL_VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version output is set to $ACTUAL_VERSION"
+      - name: Assert distribution output is set
+        env:
+          ACTUAL_DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL_DIST"
+          if [ -z "$ACTUAL_DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution output is set to $ACTUAL_DIST"
+      - name: Assert path output is set and exists
+        env:
+          ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL_PATH"
+          if [ -z "$ACTUAL_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL_PATH" ]; then
+            echo "FAIL: path directory does not exist: $ACTUAL_PATH"
+            exit 1
+          fi
+          echo "PASS: path output is set and directory exists"
+      - name: Assert java is on PATH and is version 17
+        run: |
+          which java
+          java -version 2>&1
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "17"; then
+            echo "FAIL: expected Java 17 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 17 (Zulu) is installed and on PATH"
+      - name: Assert JAVA_HOME is set
+        run: |
+          echo "JAVA_HOME: $JAVA_HOME"
+          if [ -z "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME is not set"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME is set to $JAVA_HOME"

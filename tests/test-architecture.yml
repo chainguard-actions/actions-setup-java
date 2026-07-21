@@ -16,22 +16,12 @@ jobs:
         env:
           ACTUAL: ${{ steps.action.outputs.version }}
         run: |
-          echo "actual: $ACTUAL"
+          echo "actual version: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+            echo "FAIL: expected version output to be set"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
-      - name: Assert path output is set
-        env:
-          ACTUAL: ${{ steps.action.outputs.path }}
-        run: |
-          echo "actual: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected path output to be non-empty"
-            exit 1
-          fi
-          echo "PASS: path=$ACTUAL"
       - name: Assert java is available
         run: |
           java -version

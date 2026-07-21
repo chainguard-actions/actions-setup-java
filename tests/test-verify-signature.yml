@@ -1,4 +1,4 @@
-name: Test jdkFile input
+name: Test verify-signature-public-key input
 on:
   workflow_dispatch:
 jobs:
@@ -6,22 +6,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download a JDK tarball for use as jdkFile
-        id: download-jdk
+      - name: Get Temurin GPG public key
+        id: get-key
         run: |
-          # Download a small JDK tarball from Adoptium API
-          JDK_URL=$(curl -fsSL \
-            "https://api.adoptium.net/v3/assets/latest/21/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse" \
-            | python3 -c "import sys,json; data=json.load(sys.stdin); print(data[0]['binary']['package']['link'])")
-          echo "Downloading JDK from: $JDK_URL"
-          curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
-          echo "jdk_path=/tmp/jdk.tar.gz" >> $GITHUB_OUTPUT
+          # Fetch the Adoptium/Temurin GPG public key used for signing releases
+          KEY=$(curl -fsSL https://adoptium.net/gpg.key)
+          echo "key<<KEYEOF" >> $GITHUB_OUTPUT
+          echo "$KEY" >> $GITHUB_OUTPUT
+          echo "KEYEOF" >> $GITHUB_OUTPUT
       - id: action
         uses: .
         with:
           java-version: '21'
-          distribution: 'jdkfile'
-          jdkFile: ${{ steps.download-jdk.outputs.jdk_path }}
+          distribution: 'temurin'
+          verify-signature: true
+          verify-signature-public-key: ${{ steps.get-key.outputs.key }}
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.action.outputs.version }}

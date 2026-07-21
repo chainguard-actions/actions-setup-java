@@ -1,0 +1,57 @@
+name: Test setup-java with semver version range
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17.0'
+          distribution: 'temurin'
+      - name: Assert version output is set
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if [ -z "$ACTUAL_VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version output is set to $ACTUAL_VERSION"
+      - name: Assert version is in the 17.x range
+        env:
+          ACTUAL_VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL_VERSION"
+          if ! echo "$ACTUAL_VERSION" | grep -qE "^17\."; then
+            echo "FAIL: expected version starting with '17.' but got: $ACTUAL_VERSION"
+            exit 1
+          fi
+          echo "PASS: version is in the 17.x range"
+      - name: Assert java binary is version 17
+        run: |
+          java -version 2>&1
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "17"; then
+            echo "FAIL: expected Java 17 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 17 is installed"
+      - name: Assert path output is set and exists
+        env:
+          ACTUAL_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL_PATH"
+          if [ -z "$ACTUAL_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL_PATH" ]; then
+            echo "FAIL: path directory does not exist: $ACTUAL_PATH"
+            exit 1
+          fi
+          echo "PASS: path output is set and directory exists"

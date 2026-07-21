@@ -6,19 +6,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate a test GPG key (no passphrase)
+        id: gen-gpg
+        run: |
+          # Generate a GPG key for testing
+          gpg --batch --gen-key <<EOF
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %commit
+          EOF
+          # Export the private key
+          GPG_KEY=$(gpg --armor --export-secret-keys test@example.com)
+          echo "gpg_key<<GPGEOF" >> $GITHUB_OUTPUT
+          echo "$GPG_KEY" >> $GITHUB_OUTPUT
+          echo "GPGEOF" >> $GITHUB_OUTPUT
       - id: action
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
+          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_key }}
           gpg-passphrase: 'MY_GPG_PASSPHRASE'
+        env:
+          MY_GPG_PASSPHRASE: ''
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.action.outputs.version }}
         run: |
-          echo "actual: $ACTUAL"
+          echo "actual version: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+            echo "FAIL: expected version output to be set"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
