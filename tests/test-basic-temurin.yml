@@ -1,21 +1,16 @@
-name: Test basic Java setup with Temurin
+name: Test basic setup with Temurin distribution
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_REF: refs/heads/main
-      GITHUB_EVENT_NAME: push
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
       - id: setup-java
         uses: .
         with:
           java-version: '17'
           distribution: 'temurin'
-
       - name: Assert distribution output
         env:
           ACTUAL: ${{ steps.setup-java.outputs.distribution }}
@@ -26,7 +21,6 @@ jobs:
             exit 1
           fi
           echo "PASS: distribution=$ACTUAL"
-
       - name: Assert version output
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}
@@ -37,7 +31,6 @@ jobs:
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
-
       - name: Assert path output
         env:
           ACTUAL: ${{ steps.setup-java.outputs.path }}
@@ -52,7 +45,11 @@ jobs:
             exit 1
           fi
           echo "PASS: path=$ACTUAL"
-
+      - name: Assert java is on PATH
+        run: |
+          which java
+          java -version
+          echo "PASS: java is available on PATH"
       - name: Assert JAVA_HOME is set
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
@@ -60,19 +57,16 @@ jobs:
             echo "FAIL: JAVA_HOME is not set"
             exit 1
           fi
-          echo "PASS"
-
-      - name: Assert java binary is available
-        run: |
-          which java
-          java -version
-          echo "PASS: java binary found"
-
-      - name: Assert java version is 17
+          if [ ! -d "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME directory does not exist: $JAVA_HOME"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME=$JAVA_HOME"
+      - name: Assert Java version is 17
         run: |
           VERSION=$(java -version 2>&1 | head -1)
           echo "java version output: $VERSION"
-          if ! echo "$VERSION" | grep -q "17"; then
+          if ! echo "$VERSION" | grep -q '17'; then
             echo "FAIL: expected Java 17 but got: $VERSION"
             exit 1
           fi

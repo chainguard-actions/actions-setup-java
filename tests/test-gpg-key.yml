@@ -1,0 +1,65 @@
+name: Test gpg-private-key and gpg-passphrase inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate a test GPG key and export it
+        id: gen-gpg
+        run: |
+          # Generate a test GPG key non-interactively (no passphrase for simplicity)
+          cat > /tmp/gpg-batch.txt << 'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %commit
+          EOF
+
+          gpg --batch --gen-key /tmp/gpg-batch.txt 2>&1
+
+          # Get the key fingerprint
+          FINGERPRINT=$(gpg --list-secret-keys --with-colons test@example.com 2>/dev/null | grep '^fpr' | head -1 | cut -d: -f10)
+          echo "fingerprint=$FINGERPRINT" >> $GITHUB_OUTPUT
+
+          # Export the private key as armored text
+          gpg --batch --armor --export-secret-keys "$FINGERPRINT" > /tmp/test-private-key.asc
+          echo "GPG key exported, fingerprint: $FINGERPRINT"
+
+          # Store the key content in an env file for the next step
+          {
+            echo 'GPG_KEY<<GPGEOF'
+            cat /tmp/test-private-key.asc
+            echo 'GPGEOF'
+          } >> $GITHUB_ENV
+
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          gpg-private-key: ${{ env.GPG_KEY }}
+          gpg-passphrase: 'GPG_PASSPHRASE'
+        env:
+          GPG_PASSPHRASE: ''
+
+      - name: Assert version output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

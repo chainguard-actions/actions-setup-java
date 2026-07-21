@@ -67,7 +67,7 @@ jobs:
             version: '24-ea'
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -79,8 +79,8 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   setup-java-major-minor-versions:
@@ -120,7 +120,7 @@ jobs:
             version: '17.0.7'
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -130,9 +130,9 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   setup-java-check-latest:
@@ -157,7 +157,7 @@ jobs:
             os: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -169,8 +169,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Verify Java
         env:
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "11" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "11" "$JAVA_PATH"
         shell: bash
 
   setup-java-multiple-jdks:
@@ -195,7 +195,7 @@ jobs:
             os: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -221,8 +221,8 @@ jobs:
         shell: pwsh
       - name: Verify Java
         env:
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "17" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "17" "$JAVA_PATH"
         shell: bash
 
   setup-java-ea-versions-zulu:
@@ -236,7 +236,7 @@ jobs:
         version: ['17-ea', '15.0.0-ea.14']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -246,8 +246,8 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   setup-java-ea-versions-temurin:
@@ -261,7 +261,7 @@ jobs:
         version: ['17-ea']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -271,8 +271,8 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   setup-java-ea-versions-sapmachine:
@@ -286,7 +286,7 @@ jobs:
         version: ['17-ea', '21-ea']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -296,8 +296,8 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   setup-java-custom-package-type:
@@ -376,7 +376,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -389,8 +389,8 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   # Only Liberica and Zulu provide x86
@@ -407,7 +407,7 @@ jobs:
         version: ['11']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: setup-java
         uses: ./
         id: setup-java
@@ -418,8 +418,8 @@ jobs:
       - name: Verify Java
         env:
           MATRIX_VERSION: ${{ matrix.version }}
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "$MATRIX_VERSION" "$JAVA_PATH"
         shell: bash
 
   setup-java-version-both-version-inputs-presents:
@@ -433,7 +433,7 @@ jobs:
         java-version-file: ['.java-version', '.tool-versions']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Create .java-version file
         shell: bash
         run: echo "17" > .java-version
@@ -449,8 +449,8 @@ jobs:
           java-version-file: ${{matrix.java-version-file }}
       - name: Verify Java
         env:
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "11" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "11" "$JAVA_PATH"
         shell: bash
 
   setup-java-version-from-file-major-notation:
@@ -464,7 +464,7 @@ jobs:
         java-version-file: ['.java-version', '.tool-versions']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Create .java-version file
         shell: bash
         run: echo "11" > .java-version
@@ -479,8 +479,8 @@ jobs:
           java-version-file: ${{matrix.java-version-file }}
       - name: Verify Java
         env:
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "11" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "11" "$JAVA_PATH"
         shell: bash
 
   setup-java-version-from-file-major-minor-patch-notation:
@@ -494,7 +494,7 @@ jobs:
         java-version-file: ['.java-version', '.tool-versions']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Create .java-version file
         shell: bash
         run: echo "17.0.10" > .java-version
@@ -509,8 +509,8 @@ jobs:
           java-version-file: ${{matrix.java-version-file }}
       - name: Verify Java
         env:
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "17.0.10" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "17.0.10" "$JAVA_PATH"
         shell: bash
 
   setup-java-version-from-file-major-minor-patch-with-dist:
@@ -524,7 +524,7 @@ jobs:
         java-version-file: ['.java-version', '.tool-versions']
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Create .java-version file
         shell: bash
         run: echo "openjdk64-17.0.10" > .java-version
@@ -539,6 +539,6 @@ jobs:
           java-version-file: ${{matrix.java-version-file }}
       - name: Verify Java
         env:
-          SETUP_JAVA_PATH: ${{ steps.setup-java.outputs.path }}
-        run: bash __tests__/verify-java.sh "17.0.10" "$SETUP_JAVA_PATH"
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: bash __tests__/verify-java.sh "17.0.10" "$JAVA_PATH"
         shell: bash

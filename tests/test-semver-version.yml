@@ -1,4 +1,4 @@
-name: Test setup with JRE package type
+name: Test setup with semver version specification
 on:
   workflow_dispatch:
 jobs:
@@ -9,9 +9,8 @@ jobs:
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
-          java-package: 'jre'
       - name: Assert distribution output
         env:
           ACTUAL: ${{ steps.setup-java.outputs.distribution }}
@@ -32,25 +31,36 @@ jobs:
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
+      - name: Assert path output exists
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path directory does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
       - name: Assert java is on PATH
         run: |
           which java
           java -version
           echo "PASS: java is available on PATH"
-      - name: Assert Java version is 17
+      - name: Assert Java version is 21
         run: |
           VERSION=$(java -version 2>&1 | head -1)
           echo "java version output: $VERSION"
-          if ! echo "$VERSION" | grep -q '17'; then
-            echo "FAIL: expected Java 17 but got: $VERSION"
+          if ! echo "$VERSION" | grep -q '21'; then
+            echo "FAIL: expected Java 21 but got: $VERSION"
             exit 1
           fi
-          echo "PASS: Java 17 JRE confirmed"
-      - name: Assert JAVA_HOME is set
+          echo "PASS: Java 21 confirmed"
+      - name: Assert javac is available
         run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          if [ -z "$JAVA_HOME" ]; then
-            echo "FAIL: JAVA_HOME is not set"
-            exit 1
-          fi
-          echo "PASS: JAVA_HOME=$JAVA_HOME"
+          which javac
+          javac -version
+          echo "PASS: javac is available"

@@ -1,4 +1,4 @@
-name: Test jdkFile input
+name: Test cache-dependency-path input
 on:
   workflow_dispatch:
 jobs:
@@ -6,21 +6,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download a JDK archive for testing
+      - name: Create a sample pom.xml for cache dependency path
         run: |
-          # Download Temurin JDK 17 for linux x64
-          JDK_URL="https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz"
-          echo "Downloading JDK from $JDK_URL"
-          curl -L -o /tmp/jdk-17.tar.gz "$JDK_URL"
-          echo "Download complete"
-          ls -lh /tmp/jdk-17.tar.gz
+          mkdir -p /tmp/test-project
+          cat > /tmp/test-project/pom.xml << 'EOF'
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>test</artifactId>
+            <version>1.0.0</version>
+          </project>
+          EOF
       - id: setup-java
         uses: .
         with:
           java-version: '17'
-          distribution: 'jdkfile'
-          jdkFile: '/tmp/jdk-17.tar.gz'
-          architecture: 'x64'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: '/tmp/test-project/pom.xml'
       - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}

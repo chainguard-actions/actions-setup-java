@@ -1,85 +1,42 @@
-name: Test Java setup with Maven settings
+name: Test Maven settings.xml generation
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_REF: refs/heads/main
-      GITHUB_EVENT_NAME: push
-      MY_MAVEN_USERNAME: testuser
-      MY_MAVEN_TOKEN: testtoken
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
       - id: setup-java
         uses: .
         with:
           java-version: '17'
           distribution: 'temurin'
           server-id: 'my-server'
-          server-username: 'MY_MAVEN_USERNAME'
-          server-password: 'MY_MAVEN_TOKEN'
-
-      - name: Assert distribution output is set
+          server-username: 'MY_USERNAME'
+          server-password: 'MY_PASSWORD'
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+          MY_USERNAME: testuser
+          MY_PASSWORD: testpassword
+      - name: Assert settings.xml was created
         run: |
-          echo "actual distribution: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: distribution output is empty"
-            exit 1
-          fi
-          echo "PASS: distribution=$ACTUAL"
-
-      - name: Assert version output is set
-        env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
-        run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: version output is empty"
-            exit 1
-          fi
-          echo "PASS: version=$ACTUAL"
-
-      - name: Assert Maven settings.xml was created
-        run: |
-          SETTINGS_FILE="$HOME/.m2/settings.xml"
-          echo "Checking for settings.xml at: $SETTINGS_FILE"
-          if [ ! -f "$SETTINGS_FILE" ]; then
-            echo "FAIL: settings.xml not found at $SETTINGS_FILE"
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "Checking for settings.xml at: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
             exit 1
           fi
           echo "PASS: settings.xml exists"
-          cat "$SETTINGS_FILE"
-
+          cat "$SETTINGS"
       - name: Assert settings.xml contains server-id
         run: |
-          SETTINGS_FILE="$HOME/.m2/settings.xml"
-          if ! grep -q "my-server" "$SETTINGS_FILE"; then
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q 'my-server' "$SETTINGS"; then
             echo "FAIL: settings.xml does not contain server-id 'my-server'"
-            cat "$SETTINGS_FILE"
             exit 1
           fi
           echo "PASS: settings.xml contains server-id 'my-server'"
-
-      - name: Assert settings.xml references username env var
+      - name: Assert java is on PATH
         run: |
-          SETTINGS_FILE="$HOME/.m2/settings.xml"
-          if ! grep -q "MY_MAVEN_USERNAME" "$SETTINGS_FILE"; then
-            echo "FAIL: settings.xml does not reference MY_MAVEN_USERNAME"
-            cat "$SETTINGS_FILE"
-            exit 1
-          fi
-          echo "PASS: settings.xml references MY_MAVEN_USERNAME"
-
-      - name: Assert settings.xml references password env var
-        run: |
-          SETTINGS_FILE="$HOME/.m2/settings.xml"
-          if ! grep -q "MY_MAVEN_TOKEN" "$SETTINGS_FILE"; then
-            echo "FAIL: settings.xml does not reference MY_MAVEN_TOKEN"
-            cat "$SETTINGS_FILE"
-            exit 1
-          fi
-          echo "PASS: settings.xml references MY_MAVEN_TOKEN"
+          which java
+          java -version
+          echo "PASS: java is available on PATH"

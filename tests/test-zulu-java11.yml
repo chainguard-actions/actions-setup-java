@@ -1,4 +1,4 @@
-name: Test setup with JRE package type
+name: Test setup with Zulu distribution and Java 11
 on:
   workflow_dispatch:
 jobs:
@@ -9,9 +9,8 @@ jobs:
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          java-package: 'jre'
+          java-version: '11'
+          distribution: 'zulu'
       - name: Assert distribution output
         env:
           ACTUAL: ${{ steps.setup-java.outputs.distribution }}
@@ -37,15 +36,15 @@ jobs:
           which java
           java -version
           echo "PASS: java is available on PATH"
-      - name: Assert Java version is 17
+      - name: Assert Java version is 11
         run: |
           VERSION=$(java -version 2>&1 | head -1)
           echo "java version output: $VERSION"
-          if ! echo "$VERSION" | grep -q '17'; then
-            echo "FAIL: expected Java 17 but got: $VERSION"
+          if ! echo "$VERSION" | grep -q '11'; then
+            echo "FAIL: expected Java 11 but got: $VERSION"
             exit 1
           fi
-          echo "PASS: Java 17 JRE confirmed"
+          echo "PASS: Java 11 confirmed"
       - name: Assert JAVA_HOME is set
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
