@@ -1,0 +1,41 @@
+name: Test Java setup with custom Maven settings path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create custom settings directory
+        run: mkdir -p "$GITHUB_WORKSPACE/custom-m2"
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          server-id: 'custom-server'
+          settings-path: '${{ github.workspace }}/custom-m2'
+      - name: Assert settings.xml was created in custom path
+        run: |
+          SETTINGS="$GITHUB_WORKSPACE/custom-m2/settings.xml"
+          echo "Checking for settings.xml at: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at custom path $SETTINGS"
+            ls -la "$GITHUB_WORKSPACE/custom-m2/" || true
+            exit 1
+          fi
+          echo "PASS: settings.xml exists at custom path"
+          cat "$SETTINGS"
+      - name: Assert settings.xml contains custom server-id
+        run: |
+          SETTINGS="$GITHUB_WORKSPACE/custom-m2/settings.xml"
+          if ! grep -q "custom-server" "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain server-id 'custom-server'"
+            cat "$SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains server-id 'custom-server'"
+      - name: Assert java is installed
+        run: |
+          java -version
+          echo "PASS: java is available"

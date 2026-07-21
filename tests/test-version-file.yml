@@ -1,0 +1,40 @@
+name: Test Java setup with version file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create .java-version file
+        run: |
+          echo "21" > "$GITHUB_WORKSPACE/.java-version"
+          cat "$GITHUB_WORKSPACE/.java-version"
+      - id: setup-java
+        uses: .
+        with:
+          java-version-file: '.java-version'
+          distribution: 'temurin'
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "21"; then
+            echo "FAIL: expected version containing '21' but got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert java 21 is on PATH
+        run: |
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 21 is installed from version file"

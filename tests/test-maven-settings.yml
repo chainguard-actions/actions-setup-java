@@ -1,4 +1,4 @@
-name: Test Java setup with Maven settings and toolchain options
+name: Test Java setup with Maven settings
 on:
   workflow_dispatch:
 jobs:
@@ -6,41 +6,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Create custom settings directory
-        run: mkdir -p /tmp/maven-settings
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
-          settings-path: '/tmp/maven-settings'
-          mvn-toolchain-id: 'my-temurin-17'
-          mvn-toolchain-vendor: 'adoptium'
-      - name: Assert distribution output
-        env:
-          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+          server-id: 'my-server'
+          server-username: 'MY_USERNAME'
+          server-password: 'MY_PASSWORD'
+      - name: Assert settings.xml was created
         run: |
-          echo "distribution: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: distribution output is empty"
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "Checking for settings.xml at: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
             exit 1
           fi
-          echo "PASS"
-      - name: Assert version output
-        env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          echo "PASS: settings.xml exists"
+          cat "$SETTINGS"
+      - name: Assert settings.xml contains server-id
         run: |
-          echo "version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: version output is empty"
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "my-server" "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain server-id 'my-server'"
+            cat "$SETTINGS"
             exit 1
           fi
-          echo "PASS"
-      - name: Assert settings.xml was written to custom path
+          echo "PASS: settings.xml contains server-id 'my-server'"
+      - name: Assert settings.xml contains username env var reference
         run: |
-          echo "Checking for settings.xml in /tmp/maven-settings"
-          if [ ! -f "/tmp/maven-settings/settings.xml" ]; then
-            echo "FAIL: settings.xml not found at /tmp/maven-settings/settings.xml"
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "MY_USERNAME" "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain username env var 'MY_USERNAME'"
+            cat "$SETTINGS"
             exit 1
           fi
-          echo "PASS"
+          echo "PASS: settings.xml contains username env var reference"
+      - name: Assert settings.xml contains password env var reference
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "MY_PASSWORD" "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain password env var 'MY_PASSWORD'"
+            cat "$SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains password env var reference"
+      - name: Assert java is installed
+        run: |
+          java -version
+          echo "PASS: java is available"

@@ -1,0 +1,60 @@
+name: Test Java setup with semver range version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21.0.x'
+          distribution: 'temurin'
+      - name: Assert distribution output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+      - name: Assert version output contains 21
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "21"; then
+            echo "FAIL: expected version containing '21' but got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert path output is valid
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+      - name: Assert java 21 is on PATH
+        run: |
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21.x but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 21.x is installed"

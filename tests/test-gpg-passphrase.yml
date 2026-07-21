@@ -1,4 +1,4 @@
-name: Test Java setup with GPG passphrase env var name
+name: Test gpg-passphrase input
 on:
   workflow_dispatch:
 jobs:
@@ -6,33 +6,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate a test GPG key
+        id: gen-gpg
+        run: |
+          # Generate a test GPG key with a passphrase
+          export GNUPGHOME="$(mktemp -d)"
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+          cat > "$GNUPGHOME/keygen.batch" << 'EOF'
+          %echo Generating test key
+          Key-Type: RSA
+          Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@example.com
+          Expire-Date: 0
+          Passphrase: testpassphrase123
+          %commit
+          %echo done
+          EOF
+          gpg --batch --gen-key "$GNUPGHOME/keygen.batch"
+          GPG_KEY="$(gpg --armor --export-secret-keys test@example.com)"
+          echo "GPG_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
+          echo "$GPG_KEY" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
       - id: setup-java
         uses: .
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
+          gpg-private-key: ${{ env.GPG_PRIVATE_KEY }}
           gpg-passphrase: 'MY_GPG_PASSPHRASE'
-      - name: Assert distribution output
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
-        run: |
-          echo "distribution: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: distribution output is empty"
-            exit 1
-          fi
-          echo "PASS"
-      - name: Assert version output
+          MY_GPG_PASSPHRASE: 'testpassphrase123'
+      - name: Assert version output is set
         env:
           ACTUAL: ${{ steps.setup-java.outputs.version }}
         run: |
-          echo "version: $ACTUAL"
+          echo "actual version: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: version output is empty"
+            echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
-          echo "PASS"
+          echo "PASS: version=$ACTUAL"
       - name: Assert java is on PATH
         run: |
-          java -version 2>&1
-          echo "PASS"
+          java -version
+          echo "PASS: java is available"

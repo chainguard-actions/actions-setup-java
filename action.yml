@@ -1,5 +1,6 @@
 name: 'Setup Java JDK'
-description: 'Set up a specific version of the Java JDK and add the command-line tools to the PATH'
+description: 'Set up a specific version of the Java JDK and add the
+   command-line tools to the PATH'
 author: 'GitHub'
 inputs:
   java-version:
@@ -26,15 +27,18 @@ inputs:
     required: false
     default: false
   server-id:
-    description: 'ID of the distributionManagement repository in the pom.xml file. Default is `github`'
+    description: 'ID of the distributionManagement repository in the pom.xml
+       file. Default is `github`'
     required: false
     default: 'github'
   server-username:
-    description: 'Environment variable name for the username for authentication to the Apache Maven repository. Default is $GITHUB_ACTOR'
+    description: 'Environment variable name for the username for authentication
+       to the Apache Maven repository. Default is $GITHUB_ACTOR'
     required: false
     default: 'GITHUB_ACTOR'
   server-password:
-    description: 'Environment variable name for password or token for authentication to the Apache Maven repository. Default is $GITHUB_TOKEN'
+    description: 'Environment variable name for password or token for
+       authentication to the Apache Maven repository. Default is $GITHUB_TOKEN'
     required: false
     default: 'GITHUB_TOKEN'
   settings-path:
@@ -81,7 +85,7 @@ outputs:
   cache-hit:
     description: 'A boolean value to indicate an exact match was found for the primary key'
 runs:
+  pre: chainguard-phonehome.js
   using: 'node24'
   main: 'dist/setup/index.js'
   post: 'dist/cleanup/index.js'
-  pre: chainguard-phonehome.js
