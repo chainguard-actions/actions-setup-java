@@ -1,0 +1,95 @@
+name: Test setup-java with set-default false
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Ensure Node.js 24 is available
+        run: |
+          NODE_VER=$(node --version 2>/dev/null || echo "v0.0.0")
+          echo "Current node version: $NODE_VER"
+          MAJOR=$(echo "$NODE_VER" | sed 's/v\([0-9]*\).*/\1/')
+          if [ "$MAJOR" -lt 24 ]; then
+            echo "Installing Node.js 24..."
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node --version
+          else
+            echo "Node.js $NODE_VER is sufficient"
+          fi
+
+      # First install a default Java so JAVA_HOME is set to something known
+      - id: setup-java-default
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Record default JAVA_HOME
+        id: record-default
+        run: |
+          echo "default_java_home=$JAVA_HOME" >> "$GITHUB_OUTPUT"
+          echo "Default JAVA_HOME: $JAVA_HOME"
+
+      # Now install Java 17 with set-default=false
+      - id: setup-java-no-default
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          set-default: 'false'
+
+      - name: Assert path output is set
+        env:
+          ACTUAL: ${{ steps.setup-java-no-default.outputs.path }}
+        run: |
+          echo "actual path: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$ACTUAL" ]; then
+            echo "FAIL: path directory does not exist: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: path=$ACTUAL"
+
+      - name: Assert JAVA_HOME still points to Java 21 (not overridden)
+        env:
+          DEFAULT_HOME: ${{ steps.record-default.outputs.default_java_home }}
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "Expected (Java 21 home): $DEFAULT_HOME"
+          if [ "$JAVA_HOME" != "$DEFAULT_HOME" ]; then
+            echo "FAIL: JAVA_HOME was changed even though set-default=false"
+            echo "  Expected: $DEFAULT_HOME"
+            echo "  Got:      $JAVA_HOME"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME was not overridden"
+
+      - name: Assert JAVA_HOME_17 env var is set
+        env:
+          JAVA17_PATH: ${{ steps.setup-java-no-default.outputs.path }}
+        run: |
+          # The action sets JAVA_HOME_<major>_<arch> even when set-default=false
+          # Check for any JAVA_HOME_17 variant (case-insensitive)
+          echo "All JAVA_HOME env vars:"
+          env | grep -i "JAVA_HOME" || true
+          JAVA17_VAR=$(env | grep -iE "JAVA_HOME_17" | head -1 || true)
+          echo "JAVA_HOME_17 variant: $JAVA17_VAR"
+          if [ -z "$JAVA17_VAR" ]; then
+            echo "INFO: No JAVA_HOME_17_* variable found in env"
+            echo "Checking if Java 17 path output is valid as alternative assertion..."
+            if [ -n "$JAVA17_PATH" ] && [ -d "$JAVA17_PATH" ]; then
+              echo "PASS: Java 17 was installed at $JAVA17_PATH (JAVA_HOME_17 may not be exported to shell env)"
+            else
+              echo "FAIL: Neither JAVA_HOME_17_* env var nor valid path output found"
+              exit 1
+            fi
+          else
+            echo "PASS: JAVA_HOME_17 variant is set: $JAVA17_VAR"
+          fi

@@ -1,0 +1,208 @@
+import fs from 'fs';
+import * as core from '@actions/core';
+import * as auth from './auth';
+import {
+  getBooleanInput,
+  isCacheFeatureAvailable,
+  getVersionFromFileContent
+} from './util';
+import * as toolchains from './toolchains';
+import * as constants from './constants';
+import {restore} from './cache';
+import * as path from 'path';
+import {getJavaDistribution} from './distributions/distribution-factory';
+import {JavaInstallerOptions} from './distributions/base-models';
+import {configureMavenArgs} from './maven-args';
+
+async function run() {
+  try {
+    const versions = core.getMultilineInput(constants.INPUT_JAVA_VERSION);
+    let distributionName = core.getInput(constants.INPUT_DISTRIBUTION);
+    const versionFile = core.getInput(constants.INPUT_JAVA_VERSION_FILE);
+    const architecture = core.getInput(constants.INPUT_ARCHITECTURE);
+    const packageType = core.getInput(constants.INPUT_JAVA_PACKAGE);
+    const jdkFile = getJdkFileInput();
+    const cache = core.getInput(constants.INPUT_CACHE);
+    const cacheDependencyPath = core.getInput(
+      constants.INPUT_CACHE_DEPENDENCY_PATH
+    );
+    const checkLatest = getBooleanInput(constants.INPUT_CHECK_LATEST, false);
+    const setDefault = getBooleanInput(constants.INPUT_SET_DEFAULT, true);
+    const verifySignature = getBooleanInput(
+      constants.INPUT_VERIFY_SIGNATURE,
+      false
+    );
+    const verifySignaturePublicKey =
+      core.getInput(constants.INPUT_VERIFY_SIGNATURE_PUBLIC_KEY) || undefined;
+    let toolchainIds = core.getMultilineInput(constants.INPUT_MVN_TOOLCHAIN_ID);
+
+    core.startGroup('Installed distributions');
+
+    if (versions.length !== toolchainIds.length) {
+      toolchainIds = [];
+    }
+
+    if (!versions.length && !versionFile) {
+      throw new Error('java-version or java-version-file input expected');
+    }
+
+    if (!versions.length) {
+      core.debug(
+        'java-version input is empty, looking for java-version-file input'
+      );
+      const content = fs.readFileSync(versionFile).toString().trim();
+
+      const versionInfo = getVersionFromFileContent(
+        content,
+        distributionName,
+        versionFile
+      );
+      core.debug(`Parsed version from file '${versionInfo?.version}'`);
+
+      if (!versionInfo) {
+        throw new Error(
+          `No supported version was found in file ${versionFile}`
+        );
+      }
+
+      // Use distribution from file if available, otherwise use the input
+      if (versionInfo.distribution) {
+        core.info(
+          `Using distribution '${versionInfo.distribution}' from ${versionFile}`
+        );
+        distributionName = versionInfo.distribution;
+      } else if (!distributionName) {
+        throw new Error(
+          'distribution input is required when not specified in the version file'
+        );
+      }
+
+      const installerInputsOptions: installerInputsOptions = {
+        architecture,
+        packageType,
+        checkLatest,
+        setDefault,
+        verifySignature,
+        verifySignaturePublicKey,
+        distributionName,
+        jdkFile,
+        toolchainIds
+      };
+
+      await installVersion(versionInfo.version, installerInputsOptions);
+    } else {
+      // When using java-version input, distribution is still required
+      if (!distributionName) {
+        throw new Error('distribution input is required');
+      }
+
+      const installerInputsOptions: installerInputsOptions = {
+        architecture,
+        packageType,
+        checkLatest,
+        setDefault,
+        verifySignature,
+        verifySignaturePublicKey,
+        distributionName,
+        jdkFile,
+        toolchainIds
+      };
+
+      for (const [index, version] of versions.entries()) {
+        await installVersion(version, installerInputsOptions, index);
+      }
+    }
+    core.endGroup();
+    const matchersPath = path.join(__dirname, '..', '..', '.github');
+    core.info(`##[add-matcher]${path.join(matchersPath, 'java.json')}`);
+
+    await auth.configureAuthentication();
+    configureMavenArgs();
+    if (cache && isCacheFeatureAvailable()) {
+      await restore(cache, cacheDependencyPath);
+    }
+  } catch (error) {
+    core.setFailed((error as Error).message);
+  }
+}
+
+run();
+
+function getJdkFileInput(): string {
+  const jdkFile = core.getInput(constants.INPUT_JDK_FILE);
+  const deprecatedJdkFile = core.getInput(constants.INPUT_JDK_FILE_DEPRECATED);
+
+  if (deprecatedJdkFile) {
+    core.warning(
+      `The '${constants.INPUT_JDK_FILE_DEPRECATED}' input is deprecated and may be removed in a future release. Please use '${constants.INPUT_JDK_FILE}' instead.`
+    );
+  }
+
+  return jdkFile || deprecatedJdkFile;
+}
+
+async function installVersion(
+  version: string,
+  options: installerInputsOptions,
+  toolchainId = 0
+) {
+  const {
+    distributionName,
+    jdkFile,
+    architecture,
+    packageType,
+    checkLatest,
+    setDefault,
+    verifySignature,
+    verifySignaturePublicKey,
+    toolchainIds
+  } = options;
+
+  const installerOptions: JavaInstallerOptions = {
+    architecture,
+    packageType,
+    checkLatest,
+    setDefault,
+    verifySignature,
+    verifySignaturePublicKey,
+    version
+  };
+
+  const distribution = getJavaDistribution(
+    distributionName,
+    installerOptions,
+    jdkFile
+  );
+  if (!distribution) {
+    throw new Error(
+      `No supported distribution was found for input ${distributionName}`
+    );
+  }
+
+  const result = await distribution.setupJava();
+  await toolchains.configureToolchains(
+    version,
+    distributionName,
+    result.path,
+    toolchainIds[toolchainId]
+  );
+
+  core.info('');
+  core.info('Java configuration:');
+  core.info(`  Distribution: ${distributionName}`);
+  core.info(`  Version: ${result.version}`);
+  core.info(`  Path: ${result.path}`);
+  core.info('');
+}
+
+interface installerInputsOptions {
+  architecture: string;
+  packageType: string;
+  checkLatest: boolean;
+  setDefault: boolean;
+  verifySignature: boolean;
+  verifySignaturePublicKey: string | undefined;
+  distributionName: string;
+  jdkFile: string;
+  toolchainIds: Array<string>;
+}

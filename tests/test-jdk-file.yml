@@ -1,0 +1,127 @@
+name: Test setup-java with jdk-file and jdkFile inputs
+on:
+  workflow_dispatch:
+jobs:
+  test-jdk-file:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Ensure Node.js 24 is available
+        run: |
+          NODE_VER=$(node --version 2>/dev/null || echo "v0.0.0")
+          echo "Current node version: $NODE_VER"
+          MAJOR=$(echo "$NODE_VER" | sed 's/v\([0-9]*\).*/\1/')
+          if [ "$MAJOR" -lt 24 ]; then
+            echo "Installing Node.js 24..."
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node --version
+          else
+            echo "Node.js $NODE_VER is sufficient"
+          fi
+
+      - name: Download JDK tarball for jdk-file test
+        run: |
+          # Download Temurin 21 JDK tarball for x64 Linux
+          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          echo "Downloading JDK from: $JDK_URL"
+          curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
+          echo "Download complete"
+          ls -lh /tmp/jdk.tar.gz
+
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'jdkfile'
+          jdk-file: '/tmp/jdk.tar.gz'
+
+      - name: Assert distribution output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+
+      - name: Assert version output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+
+      - name: Assert java is available
+        run: |
+          java -version
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 21 is available via jdk-file"
+
+  test-jdkFile-deprecated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Ensure Node.js 24 is available
+        run: |
+          NODE_VER=$(node --version 2>/dev/null || echo "v0.0.0")
+          echo "Current node version: $NODE_VER"
+          MAJOR=$(echo "$NODE_VER" | sed 's/v\([0-9]*\).*/\1/')
+          if [ "$MAJOR" -lt 24 ]; then
+            echo "Installing Node.js 24..."
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node --version
+          else
+            echo "Node.js $NODE_VER is sufficient"
+          fi
+
+      - name: Download JDK tarball for jdkFile test
+        run: |
+          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          echo "Downloading JDK from: $JDK_URL"
+          curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
+          echo "Download complete"
+          ls -lh /tmp/jdk.tar.gz
+
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'jdkfile'
+          jdkFile: '/tmp/jdk.tar.gz'
+
+      - name: Assert distribution output
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+
+      - name: Assert java is available
+        run: |
+          java -version
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 21 is available via jdkFile (deprecated alias)"

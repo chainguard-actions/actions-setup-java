@@ -1,0 +1,78 @@
+name: Test setup-java with java-version-file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Ensure Node.js 24 is available
+        run: |
+          NODE_VER=$(node --version 2>/dev/null || echo "v0.0.0")
+          echo "Current node version: $NODE_VER"
+          MAJOR=$(echo "$NODE_VER" | sed 's/v\([0-9]*\).*/\1/')
+          if [ "$MAJOR" -lt 24 ]; then
+            echo "Installing Node.js 24..."
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node --version
+          else
+            echo "Node.js $NODE_VER is sufficient"
+          fi
+
+      - name: Create .java-version file
+        run: |
+          echo "21" > "$GITHUB_WORKSPACE/.java-version"
+          cat "$GITHUB_WORKSPACE/.java-version"
+
+      - id: setup-java
+        uses: .
+        with:
+          java-version-file: '.java-version'
+          distribution: 'temurin'
+
+      - name: Assert version output contains 21
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "21"; then
+            echo "FAIL: expected version containing '21' but got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+
+      - name: Assert distribution output is set
+        env:
+          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "actual distribution: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$ACTUAL"
+
+      - name: Assert JAVA_HOME is set
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          if [ -z "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME is not set"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME=$JAVA_HOME"
+
+      - name: Assert java version matches file
+        run: |
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "21"; then
+            echo "FAIL: expected Java 21 (from .java-version file) but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 21 installed from .java-version file"
