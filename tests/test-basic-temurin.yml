@@ -1,0 +1,70 @@
+name: Test basic setup-java with Temurin distribution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Assert distribution output
+        env:
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "distribution: $DIST"
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$DIST"
+      - name: Assert version output
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert path output
+        env:
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $JAVA_PATH"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_PATH" ]; then
+            echo "FAIL: path does not exist: $JAVA_PATH"
+            exit 1
+          fi
+          echo "PASS: path=$JAVA_PATH"
+      - name: Assert java is on PATH and correct version
+        run: |
+          echo "java version:"
+          java -version 2>&1
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q '17'; then
+            echo "FAIL: expected Java 17 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 17 is installed"
+      - name: Assert JAVA_HOME is set
+        run: |
+          echo "JAVA_HOME: $JAVA_HOME"
+          if [ -z "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME is not set"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME directory does not exist: $JAVA_HOME"
+            exit 1
+          fi
+          echo "PASS: JAVA_HOME=$JAVA_HOME"

@@ -1,0 +1,42 @@
+name: Test jdkFile input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download JDK archive for jdkFile test
+        run: |
+          # Download a small Temurin JDK 17 tarball for x64 Linux
+          JDK_URL="https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.11%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz"
+          curl -sfL -o /tmp/jdk17.tar.gz "$JDK_URL"
+          echo "Downloaded JDK archive to /tmp/jdk17.tar.gz"
+          ls -lh /tmp/jdk17.tar.gz
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'jdkfile'
+          jdkFile: '/tmp/jdk17.tar.gz'
+          architecture: 'x64'
+      - name: Assert Java version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          PATH_OUT: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "version: $VERSION"
+          echo "path: $PATH_OUT"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$PATH_OUT" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          echo "PASS: Java installed from jdkFile at $PATH_OUT"
+      - name: Assert java binary works
+        run: |
+          java -version
+          echo "PASS: java binary is functional"

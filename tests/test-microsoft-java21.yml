@@ -1,0 +1,61 @@
+name: Test setup-java with Microsoft distribution and Java 21
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          distribution: microsoft
+          java-version: '21'
+      - name: Assert distribution output
+        env:
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "distribution: $DIST"
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$DIST"
+      - name: Assert version output contains 21
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$VERSION" | grep -q '^21'; then
+            echo "FAIL: expected version starting with 21, got: $VERSION"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert java path output exists
+        env:
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $JAVA_PATH"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_PATH" ]; then
+            echo "FAIL: path directory does not exist: $JAVA_PATH"
+            exit 1
+          fi
+          echo "PASS: path=$JAVA_PATH"
+      - name: Assert Java 21 is active
+        run: |
+          java -version 2>&1
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q '21'; then
+            echo "FAIL: expected Java 21 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 21 is installed"

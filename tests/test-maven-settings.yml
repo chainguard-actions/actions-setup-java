@@ -1,0 +1,60 @@
+name: Test setup-java Maven settings.xml generation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          distribution: temurin
+          java-version: '17'
+          server-id: 'my-server'
+          server-username: 'MY_USERNAME'
+          server-password: 'MY_PASSWORD'
+      - name: Assert settings.xml was created
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "Checking for settings.xml at: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists"
+          cat "$SETTINGS"
+      - name: Assert settings.xml contains server-id
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q 'my-server' "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain server-id 'my-server'"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains server-id 'my-server'"
+      - name: Assert settings.xml contains username env var reference
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q 'MY_USERNAME' "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain username env var 'MY_USERNAME'"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains username env var reference"
+      - name: Assert settings.xml contains password env var reference
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q 'MY_PASSWORD' "$SETTINGS"; then
+            echo "FAIL: settings.xml does not contain password env var 'MY_PASSWORD'"
+            exit 1
+          fi
+          echo "PASS: settings.xml contains password env var reference"
+      - name: Assert Java is installed
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"

@@ -1,0 +1,46 @@
+name: Test cache-dependency-path input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a pom.xml for cache key
+        run: |
+          mkdir -p /tmp/maven-project
+          cat > /tmp/maven-project/pom.xml << 'EOF'
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>test-project</artifactId>
+            <version>1.0.0</version>
+          </project>
+          EOF
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: '/tmp/maven-project/pom.xml'
+      - name: Assert Java version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          PATH_OUT: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "version: $VERSION"
+          echo "path: $PATH_OUT"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$PATH_OUT" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          echo "PASS: Java installed with cache-dependency-path set"
+      - name: Assert java binary works
+        run: |
+          java -version
+          echo "PASS: java binary is functional"
