@@ -1,0 +1,44 @@
+name: Test jdk-file and jdkFile inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download a JDK archive for local install
+        run: |
+          # Download Temurin 21 JDK tarball for x64 Linux
+          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
+          echo "Downloaded JDK archive"
+          ls -lh /tmp/jdk.tar.gz
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'jdkfile'
+          jdk-file: '/tmp/jdk.tar.gz'
+          jdkFile: '/tmp/jdk.tar.gz'
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DISTRO: ${{ steps.setup-java.outputs.distribution }}
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DISTRO"
+          echo "path: $JAVA_PATH"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$DISTRO" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: Java $VERSION ($DISTRO) installed from local JDK file"
+      - name: Assert java is executable
+        run: |
+          java -version
+          echo "PASS: java is on PATH"

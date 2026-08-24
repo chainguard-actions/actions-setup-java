@@ -1,0 +1,37 @@
+name: Test GPG passphrase inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          gpg-passphrase: 'GPG_PASSPHRASE'
+          gpg-passphrase-env-var: 'GPG_PASSPHRASE'
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DISTRO: ${{ steps.setup-java.outputs.distribution }}
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DISTRO"
+          echo "path: $JAVA_PATH"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$DISTRO" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: Java $VERSION ($DISTRO) installed with GPG passphrase inputs"
+      - name: Assert java is executable
+        run: |
+          java -version
+          echo "PASS: java is on PATH"

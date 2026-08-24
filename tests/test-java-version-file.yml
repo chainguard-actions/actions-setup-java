@@ -1,0 +1,60 @@
+name: Test setup using java-version-file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create .java-version file
+        run: |
+          echo "17" > "$GITHUB_WORKSPACE/.java-version"
+          echo "Created .java-version with content: $(cat $GITHUB_WORKSPACE/.java-version)"
+      - id: setup-java
+        uses: .
+        with:
+          java-version-file: '.java-version'
+          distribution: 'temurin'
+      - name: Assert version output
+        env:
+          VER: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VER"
+          if [ -z "$VER" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VER"
+      - name: Assert distribution output
+        env:
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "distribution: $DIST"
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$DIST"
+      - name: Assert path output
+        env:
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $JAVA_PATH"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_PATH" ]; then
+            echo "FAIL: path does not exist: $JAVA_PATH"
+            exit 1
+          fi
+          echo "PASS: path=$JAVA_PATH"
+      - name: Assert java 17 is installed
+        run: |
+          echo "JAVA_HOME: $JAVA_HOME"
+          java -version
+          if ! java -version 2>&1 | grep -q '17'; then
+            echo "FAIL: expected Java 17"
+            exit 1
+          fi
+          echo "PASS: java 17 is available"
