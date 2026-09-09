@@ -1,0 +1,66 @@
+name: Test set-default false - Java installed but not set as default
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # First install a default Java version
+      - id: setup-java-default
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Record default Java version
+        id: record-default
+        run: |
+          DEFAULT_VER=$(java -version 2>&1 | head -1)
+          echo "default_version=$DEFAULT_VER"
+          echo "default_version=$DEFAULT_VER" >> $GITHUB_OUTPUT
+          echo "Default Java: $DEFAULT_VER"
+      # Now install Java 17 without making it default
+      - id: setup-java-non-default
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          set-default: 'false'
+      - name: Assert path output is set even when set-default is false
+        env:
+          JAVA_PATH: ${{ steps.setup-java-non-default.outputs.path }}
+        run: |
+          echo "path: $JAVA_PATH"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output should be set even when set-default=false"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_PATH" ]; then
+            echo "FAIL: path directory does not exist: $JAVA_PATH"
+            exit 1
+          fi
+          echo "PASS: path=$JAVA_PATH"
+      - name: Assert version output is set
+        env:
+          VER: ${{ steps.setup-java-non-default.outputs.version }}
+        run: |
+          echo "version: $VER"
+          if [ -z "$VER" ]; then
+            echo "FAIL: version output should be set even when set-default=false"
+            exit 1
+          fi
+          echo "PASS: version=$VER"
+      - name: Assert JAVA_HOME still points to Java 21 (not overridden by Java 17)
+        run: |
+          echo "JAVA_HOME: $JAVA_HOME"
+          java -version 2>&1
+          # JAVA_HOME should still be Java 21 since we set set-default=false for Java 17
+          if java -version 2>&1 | grep -q "17"; then
+            echo "FAIL: Java 17 should not be the default (set-default=false was used)"
+            exit 1
+          fi
+          if ! java -version 2>&1 | grep -q "21"; then
+            echo "FAIL: Java 21 should still be the default"
+            exit 1
+          fi
+          echo "PASS: Java 21 is still the default"

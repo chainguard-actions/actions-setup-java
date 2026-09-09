@@ -1,0 +1,47 @@
+name: Test GPG passphrase inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create settings path directory
+        run: mkdir -p /tmp/maven-gpg-settings
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          gpg-private-key: ''
+          gpg-passphrase: 'MY_GPG_PASSPHRASE'
+          gpg-passphrase-env-var: 'MY_GPG_PASSPHRASE'
+          settings-path: '/tmp/maven-gpg-settings'
+        env:
+          MY_GPG_PASSPHRASE: ''
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DIST"
+          echo "path: $JAVA_PATH"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          echo "PASS: Java $VERSION ($DIST) installed at $JAVA_PATH"
+      - name: Assert java is on PATH
+        run: |
+          java -version
+          echo "PASS: java is on PATH"

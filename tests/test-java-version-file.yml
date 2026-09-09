@@ -1,0 +1,59 @@
+name: Test java-version-file input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create .java-version file
+        run: |
+          echo "21" > "$GITHUB_WORKSPACE/.java-version"
+          cat "$GITHUB_WORKSPACE/.java-version"
+      - id: setup-java
+        uses: .
+        with:
+          java-version-file: '.java-version'
+          distribution: 'temurin'
+      - name: Assert distribution output is set
+        env:
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "distribution: $DIST"
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$DIST"
+      - name: Assert version output is set
+        env:
+          VER: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VER"
+          if [ -z "$VER" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VER"
+      - name: Assert java 21 is installed from version file
+        run: |
+          java -version 2>&1
+          if ! java -version 2>&1 | grep -q "21"; then
+            echo "FAIL: expected Java 21 (from .java-version file)"
+            exit 1
+          fi
+          echo "PASS: Java 21 installed from .java-version file"
+      - name: Assert path output exists
+        env:
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $JAVA_PATH"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_PATH" ]; then
+            echo "FAIL: JAVA_HOME path does not exist: $JAVA_PATH"
+            exit 1
+          fi
+          echo "PASS: path=$JAVA_PATH"

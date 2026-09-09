@@ -1,0 +1,55 @@
+name: Test Zulu distribution with Java 17
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+      - name: Assert distribution output is zulu
+        env:
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "distribution: $DIST"
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: distribution=$DIST"
+      - name: Assert version output contains 17
+        env:
+          VER: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VER"
+          if [ -z "$VER" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if ! echo "$VER" | grep -q "^17"; then
+            echo "FAIL: expected version starting with 17, got: $VER"
+            exit 1
+          fi
+          echo "PASS: version=$VER"
+      - name: Assert java 17 is on PATH
+        run: |
+          java -version 2>&1
+          if ! java -version 2>&1 | grep -q "17"; then
+            echo "FAIL: expected Java 17"
+            exit 1
+          fi
+          echo "PASS: Java 17 is installed"
+      - name: Assert JAVA_HOME_17 env var is set
+        run: |
+          # The action sets JAVA_HOME_<major>_<arch> for each installed version
+          env | grep -i "JAVA_HOME" || true
+          echo "JAVA_HOME: $JAVA_HOME"
+          if [ -z "$JAVA_HOME" ]; then
+            echo "FAIL: JAVA_HOME is not set"
+            exit 1
+          fi
+          echo "PASS"

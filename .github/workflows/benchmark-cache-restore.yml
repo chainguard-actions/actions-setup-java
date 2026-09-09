@@ -1,0 +1,264 @@
+name: Benchmark cache restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline-ref:
+        description: Git ref containing the sequential restore implementation
+        required: true
+        default: main
+        type: string
+      candidate-ref:
+        description: Git ref containing the concurrent restore implementation (defaults to the dispatched ref)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  warm-caches:
+    name: Warm ${{ matrix.tool }} ${{ matrix.profile }} caches (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    cache-mode: write-only
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, windows-latest, ubuntu-latest]
+        tool: [maven, gradle]
+        profile: [small, large]
+    steps:
+      - name: Checkout benchmark workflow
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Checkout baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: baseline
+          persist-credentials: false
+          ref: ${{ inputs.baseline-ref }}
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: candidate
+          persist-credentials: false
+          ref: ${{ inputs.candidate-ref || github.ref }}
+      - name: Prepare benchmark inputs
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh prepare "$MATRIX_TOOL" "$MATRIX_PROFILE"
+      - name: Prepare cache save
+        uses: ./candidate
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+      - name: Populate benchmark caches
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: |
+          bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+          bash __tests__/benchmark-cache-restore.sh populate "$MATRIX_TOOL" "$MATRIX_PROFILE"
+
+  benchmark:
+    name: Benchmark ${{ matrix.tool }} ${{ matrix.profile }} (${{ matrix.os }})
+    needs: warm-caches
+    runs-on: ${{ matrix.os }}
+    cache-mode: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, windows-latest, ubuntu-latest]
+        tool: [maven, gradle]
+        profile: [small, large]
+    steps:
+      - name: Checkout benchmark workflow
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Checkout baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: baseline
+          persist-credentials: false
+          ref: ${{ inputs.baseline-ref }}
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: candidate
+          persist-credentials: false
+          ref: ${{ inputs.candidate-ref || github.ref }}
+      - name: Prepare benchmark inputs
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh prepare "$MATRIX_TOOL" "$MATRIX_PROFILE"
+
+      - name: Reset caches for baseline iteration 1
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+      - name: Start baseline iteration 1 timer
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh start "$MATRIX_TOOL"
+      - name: Restore with baseline iteration 1
+        id: baseline-1
+        uses: ./baseline
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+          cache-read-only: true
+      - name: Record baseline iteration 1
+        env:
+          CACHE_HIT: ${{ steps.baseline-1.outputs.cache-hit }}
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh record "$MATRIX_TOOL" "$MATRIX_OS" "$MATRIX_PROFILE" baseline 1 "$CACHE_HIT"
+
+      - name: Reset caches for candidate iteration 1
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+      - name: Start candidate iteration 1 timer
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh start "$MATRIX_TOOL"
+      - name: Restore with candidate iteration 1
+        id: candidate-1
+        uses: ./candidate
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+          cache-read-only: true
+      - name: Record candidate iteration 1
+        env:
+          CACHE_HIT: ${{ steps.candidate-1.outputs.cache-hit }}
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh record "$MATRIX_TOOL" "$MATRIX_OS" "$MATRIX_PROFILE" candidate 1 "$CACHE_HIT"
+
+      - name: Reset caches for candidate iteration 2
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+      - name: Start candidate iteration 2 timer
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh start "$MATRIX_TOOL"
+      - name: Restore with candidate iteration 2
+        id: candidate-2
+        uses: ./candidate
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+          cache-read-only: true
+      - name: Record candidate iteration 2
+        env:
+          CACHE_HIT: ${{ steps.candidate-2.outputs.cache-hit }}
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh record "$MATRIX_TOOL" "$MATRIX_OS" "$MATRIX_PROFILE" candidate 2 "$CACHE_HIT"
+
+      - name: Reset caches for baseline iteration 2
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+      - name: Start baseline iteration 2 timer
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh start "$MATRIX_TOOL"
+      - name: Restore with baseline iteration 2
+        id: baseline-2
+        uses: ./baseline
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+          cache-read-only: true
+      - name: Record baseline iteration 2
+        env:
+          CACHE_HIT: ${{ steps.baseline-2.outputs.cache-hit }}
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh record "$MATRIX_TOOL" "$MATRIX_OS" "$MATRIX_PROFILE" baseline 2 "$CACHE_HIT"
+
+      - name: Reset caches for baseline iteration 3
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+      - name: Start baseline iteration 3 timer
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh start "$MATRIX_TOOL"
+      - name: Restore with baseline iteration 3
+        id: baseline-3
+        uses: ./baseline
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+          cache-read-only: true
+      - name: Record baseline iteration 3
+        env:
+          CACHE_HIT: ${{ steps.baseline-3.outputs.cache-hit }}
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh record "$MATRIX_TOOL" "$MATRIX_OS" "$MATRIX_PROFILE" baseline 3 "$CACHE_HIT"
+
+      - name: Reset caches for candidate iteration 3
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh reset "$MATRIX_TOOL"
+      - name: Start candidate iteration 3 timer
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh start "$MATRIX_TOOL"
+      - name: Restore with candidate iteration 3
+        id: candidate-3
+        uses: ./candidate
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: ${{ matrix.tool }}
+          cache-dependency-path: benchmark/${{ matrix.tool == 'maven' && 'pom.xml' || 'build.gradle' }}
+          cache-read-only: true
+      - name: Record candidate iteration 3
+        env:
+          CACHE_HIT: ${{ steps.candidate-3.outputs.cache-hit }}
+          MATRIX_TOOL: ${{ matrix.tool }}
+          MATRIX_OS: ${{ matrix.os }}
+          MATRIX_PROFILE: ${{ matrix.profile }}
+        run: bash __tests__/benchmark-cache-restore.sh record "$MATRIX_TOOL" "$MATRIX_OS" "$MATRIX_PROFILE" candidate 3 "$CACHE_HIT"
+
+      - name: Summarize benchmark
+        env:
+          MATRIX_TOOL: ${{ matrix.tool }}
+        run: bash __tests__/benchmark-cache-restore.sh summarize "$MATRIX_TOOL" "$GITHUB_STEP_SUMMARY"
+      - name: Upload raw timings
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: cache-restore-${{ matrix.os }}-${{ matrix.tool }}-${{ matrix.profile }}
+          path: .benchmark-results/timings.csv
+          if-no-files-found: error
