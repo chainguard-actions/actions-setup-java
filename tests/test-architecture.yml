@@ -33,8 +33,8 @@ jobs:
             echo "FAIL: path output is empty"
             exit 1
           fi
-          echo "PASS: Java $VERSION ($DIST) installed at $JAVA_PATH"
-      - name: Assert java is on PATH
+          echo "PASS"
+      - name: Assert java is available
         run: |
           java -version
-          echo "PASS: java is on PATH"
+          echo "PASS: java is available"

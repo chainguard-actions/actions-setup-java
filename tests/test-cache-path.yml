@@ -1,4 +1,4 @@
-name: Test verify-signature inputs
+name: Test cache-path input
 on:
   workflow_dispatch:
 jobs:
@@ -6,31 +6,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a minimal pom.xml for cache
+        run: |
+          mkdir -p /tmp/maven-test
+          cat > /tmp/maven-test/pom.xml << 'EOF'
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>test</artifactId>
+            <version>1.0.0</version>
+          </project>
+          EOF
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          verify-signature: 'false'
+          cache: 'maven'
+          cache-path: |
+            ~/.m2/repository
+          cache-read-only: 'true'
       - name: Assert version output is set
         env:
           VERSION: ${{ steps.setup-java.outputs.version }}
           DIST: ${{ steps.setup-java.outputs.distribution }}
-          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
         run: |
           echo "version: $VERSION"
           echo "distribution: $DIST"
-          echo "path: $JAVA_PATH"
           if [ -z "$VERSION" ]; then
             echo "FAIL: version output is empty"
             exit 1
           fi
           if [ -z "$DIST" ]; then
             echo "FAIL: distribution output is empty"
-            exit 1
-          fi
-          if [ -z "$JAVA_PATH" ]; then
-            echo "FAIL: path output is empty"
             exit 1
           fi
           echo "PASS"

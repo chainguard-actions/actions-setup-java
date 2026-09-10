@@ -1,0 +1,60 @@
+name: Test GPG passphrase inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate a test GPG key
+        id: gen-gpg
+        run: |
+          # Generate a minimal GPG key for testing
+          cat > /tmp/gpg-key-params << 'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --gen-key /tmp/gpg-key-params
+          # Export the private key
+          GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG test@example.com | grep sec | awk '{print $2}' | cut -d'/' -f2)
+          echo "key_id=$GPG_KEY_ID" >> $GITHUB_OUTPUT
+          gpg --armor --export-secret-keys "$GPG_KEY_ID" > /tmp/test-gpg-private-key.asc
+          echo "GPG_PRIVATE_KEY<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/test-gpg-private-key.asc >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          gpg-private-key: ${{ steps.gen-gpg.outputs.GPG_PRIVATE_KEY }}
+          gpg-passphrase-env-var: 'MY_GPG_PASSPHRASE'
+        env:
+          MY_GPG_PASSPHRASE: ''
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DIST"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

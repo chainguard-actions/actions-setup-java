@@ -1,4 +1,4 @@
-name: Test jdk-file and jdkFile inputs
+name: Test jdk-file input
 on:
   workflow_dispatch:
 jobs:
@@ -6,20 +6,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download JDK archive for jdk-file test
+      - name: Download a JDK archive for local installation
         run: |
-          # Download Temurin 21 JDK tarball for x64 Linux
+          # Download Temurin 21 JDK for x64 Linux
           JDK_URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse"
           echo "Downloading JDK from Adoptium API..."
           curl -L -o /tmp/jdk-21.tar.gz "$JDK_URL"
-          echo "Download complete, size: $(du -sh /tmp/jdk-21.tar.gz | cut -f1)"
+          echo "Download complete, file size: $(du -sh /tmp/jdk-21.tar.gz | cut -f1)"
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'jdkfile'
           jdk-file: '/tmp/jdk-21.tar.gz'
-          jdkFile: '/tmp/jdk-21.tar.gz'
       - name: Assert version output is set
         env:
           VERSION: ${{ steps.setup-java.outputs.version }}
@@ -37,8 +36,8 @@ jobs:
             echo "FAIL: path output is empty"
             exit 1
           fi
-          echo "PASS: Java $VERSION installed from jdk-file at $JAVA_PATH"
-      - name: Assert java is on PATH
+          echo "PASS"
+      - name: Assert java is available
         run: |
           java -version
-          echo "PASS: java is on PATH"
+          echo "PASS: java is available"
