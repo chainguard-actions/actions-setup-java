@@ -15,17 +15,17 @@ jobs:
       - name: Assert version output is set
         env:
           VERSION: ${{ steps.setup-java.outputs.version }}
-          DISTRO: ${{ steps.setup-java.outputs.distribution }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
           JAVA_PATH: ${{ steps.setup-java.outputs.path }}
         run: |
           echo "version: $VERSION"
-          echo "distribution: $DISTRO"
+          echo "distribution: $DIST"
           echo "path: $JAVA_PATH"
           if [ -z "$VERSION" ]; then
             echo "FAIL: version output is empty"
             exit 1
           fi
-          if [ -z "$DISTRO" ]; then
+          if [ -z "$DIST" ]; then
             echo "FAIL: distribution output is empty"
             exit 1
           fi
@@ -33,7 +33,7 @@ jobs:
             echo "FAIL: path output is empty"
             exit 1
           fi
-          echo "PASS: Java $VERSION ($DISTRO) installed at $JAVA_PATH"
+          echo "PASS: Java $VERSION ($DIST) installed at $JAVA_PATH"
       - name: Assert java is executable
         run: |
           java -version

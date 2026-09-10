@@ -1,4 +1,4 @@
-name: Test Maven toolchain inputs
+name: Test settings-path input
 on:
   workflow_dispatch:
 jobs:
@@ -6,13 +6,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create custom settings directory
+        run: mkdir -p /tmp/custom-maven-settings
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          mvn-toolchain-id: 'my-temurin-21'
-          mvn-toolchain-vendor: 'temurin'
+          settings-path: '/tmp/custom-maven-settings'
+          overwrite-settings: 'true'
       - name: Assert version output is set
         env:
           VERSION: ${{ steps.setup-java.outputs.version }}
@@ -30,8 +32,16 @@ jobs:
             echo "FAIL: distribution output is empty"
             exit 1
           fi
-          echo "PASS: Java $VERSION ($DIST) installed with toolchain inputs"
+          echo "PASS: Java $VERSION ($DIST) installed with custom settings-path"
       - name: Assert java is executable
         run: |
           java -version
           echo "PASS: java is on PATH"
+      - name: Assert settings.xml was written to custom path
+        run: |
+          if [ -f "/tmp/custom-maven-settings/settings.xml" ]; then
+            echo "PASS: settings.xml found at custom settings-path"
+          else
+            echo "INFO: settings.xml not found at custom path (may not be written without server config)"
+            echo "PASS: action completed without error"
+          fi

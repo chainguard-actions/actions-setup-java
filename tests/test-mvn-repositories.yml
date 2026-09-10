@@ -1,4 +1,4 @@
-name: Test mvn-repositories and mvn-server-credentials inputs
+name: Test Maven repositories and server credentials inputs
 on:
   workflow_dispatch:
 jobs:
@@ -11,28 +11,28 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          mvn-server-credentials: |
+            my-server:MY_USERNAME:MY_PASSWORD
           mvn-repositories: |
             my-repo:https://repo.example.com/maven2:false
-          mvn-server-credentials: |
-            my-repo:MY_REPO_USERNAME:MY_REPO_PASSWORD
+          mvn-repositories-include-central: 'true'
+          mvn-repositories-prioritize-central: 'true'
       - name: Assert version output is set
         env:
           VERSION: ${{ steps.setup-java.outputs.version }}
-          DISTRO: ${{ steps.setup-java.outputs.distribution }}
-          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
         run: |
           echo "version: $VERSION"
-          echo "distribution: $DISTRO"
-          echo "path: $JAVA_PATH"
+          echo "distribution: $DIST"
           if [ -z "$VERSION" ]; then
             echo "FAIL: version output is empty"
             exit 1
           fi
-          if [ -z "$DISTRO" ]; then
+          if [ -z "$DIST" ]; then
             echo "FAIL: distribution output is empty"
             exit 1
           fi
-          echo "PASS: Java $VERSION ($DISTRO) installed with Maven repository configuration"
+          echo "PASS: Java $VERSION ($DIST) installed with Maven repository inputs"
       - name: Assert java is executable
         run: |
           java -version

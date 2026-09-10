@@ -8,8 +8,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Create a minimal pom.xml for cache dependency path
         run: |
-          mkdir -p hardened/tests/fixtures/maven
-          cat > hardened/tests/fixtures/maven/pom.xml << 'EOF'
+          cat > /tmp/test-pom.xml << 'EOF'
           <project>
             <modelVersion>4.0.0</modelVersion>
             <groupId>com.example</groupId>
@@ -17,33 +16,33 @@ jobs:
             <version>1.0.0</version>
           </project>
           EOF
+          cp /tmp/test-pom.xml "$GITHUB_WORKSPACE/pom.xml"
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
-          cache-dependency-path: 'hardened/tests/fixtures/maven/pom.xml'
+          cache-dependency-path: 'pom.xml'
           cache-jdk: 'false'
           cache-path: '~/.m2/repository'
+          cache-read-only: 'true'
       - name: Assert version output is set
         env:
           VERSION: ${{ steps.setup-java.outputs.version }}
-          DISTRO: ${{ steps.setup-java.outputs.distribution }}
-          CACHE_KEY: ${{ steps.setup-java.outputs.cache-primary-key }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
         run: |
           echo "version: $VERSION"
-          echo "distribution: $DISTRO"
-          echo "cache-primary-key: $CACHE_KEY"
+          echo "distribution: $DIST"
           if [ -z "$VERSION" ]; then
             echo "FAIL: version output is empty"
             exit 1
           fi
-          if [ -z "$DISTRO" ]; then
+          if [ -z "$DIST" ]; then
             echo "FAIL: distribution output is empty"
             exit 1
           fi
-          echo "PASS: Java $VERSION ($DISTRO) installed with cache configuration"
+          echo "PASS: Java $VERSION ($DIST) installed with cache inputs"
       - name: Assert java is executable
         run: |
           java -version
