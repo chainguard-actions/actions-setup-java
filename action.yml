@@ -106,7 +106,6 @@ outputs:
   cache-primary-key:
     description: 'The primary cache key computed by the action for the configured build tool. Empty when caching is not enabled or when caching is skipped (e.g. cache service unavailable). Useful for composing with actions/cache or actions/cache/restore across jobs.'
 runs:
-  pre: chainguard-phonehome.js
   using: 'node24'
   main: 'dist/setup/index.js'
   post: 'dist/cleanup/index.js'

@@ -21,32 +21,18 @@ jobs:
             echo "Node.js $NODE_VER is sufficient"
           fi
 
-      - name: Create custom settings directory and pom.xml
-        run: |
-          mkdir -p "$GITHUB_WORKSPACE/custom-m2"
-          cat > "$GITHUB_WORKSPACE/pom.xml" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <project xmlns="http://maven.apache.org/POM/4.0.0"
-                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>com.example</groupId>
-            <artifactId>test-project</artifactId>
-            <version>1.0.0</version>
-          </project>
-          EOF
-          echo "Created custom-m2 directory and pom.xml"
+      - name: Create custom settings directory
+        run: mkdir -p "$HOME/custom-m2"
 
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          settings-path: '${{ github.workspace }}/custom-m2'
+          settings-path: '${{ github.workspace }}/custom-settings'
           mvn-toolchain-id: 'my-temurin-21'
           mvn-toolchain-vendor: 'eclipse'
-          cache: 'maven'
-          cache-dependency-path: 'pom.xml'
+          gpg-passphrase: 'MY_GPG_PASSPHRASE'
 
       - name: Assert distribution output
         env:
@@ -72,10 +58,10 @@ jobs:
 
       - name: Assert settings.xml was written to custom path
         run: |
-          SETTINGS_FILE="$GITHUB_WORKSPACE/custom-m2/settings.xml"
+          SETTINGS_FILE="${GITHUB_WORKSPACE}/custom-settings/settings.xml"
           echo "Checking for settings.xml at: $SETTINGS_FILE"
           if [ ! -f "$SETTINGS_FILE" ]; then
-            echo "FAIL: settings.xml not found at custom path: $SETTINGS_FILE"
+            echo "FAIL: settings.xml not found at custom settings-path: $SETTINGS_FILE"
             exit 1
           fi
           echo "PASS: settings.xml found at custom path"

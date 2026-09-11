@@ -1,4 +1,4 @@
-name: Test setup-java with explicit architecture
+name: Test setup-java with cache-dependency-path
 on:
   workflow_dispatch:
 jobs:
@@ -21,12 +21,30 @@ jobs:
             echo "Node.js $NODE_VER is sufficient"
           fi
 
+      - name: Create a pom.xml in a subdirectory for cache-dependency-path
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/myapp"
+          cat > "$GITHUB_WORKSPACE/myapp/pom.xml" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>myapp</artifactId>
+            <version>1.0.0</version>
+          </project>
+          EOF
+          echo "Created myapp/pom.xml"
+          cat "$GITHUB_WORKSPACE/myapp/pom.xml"
+
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          architecture: 'x64'
+          cache: 'maven'
+          cache-dependency-path: 'myapp/pom.xml'
 
       - name: Assert distribution output
         env:
@@ -50,9 +68,8 @@ jobs:
           fi
           echo "PASS: version=$ACTUAL"
 
-      - name: Assert java is on PATH and correct version
+      - name: Assert java is available
         run: |
-          which java
           java -version
           JAVA_VER=$(java -version 2>&1 | head -1)
           echo "java version output: $JAVA_VER"
@@ -60,4 +77,4 @@ jobs:
             echo "FAIL: expected Java 21 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 21 is on PATH with x64 architecture"
+          echo "PASS: Java 21 is available with cache-dependency-path configured"

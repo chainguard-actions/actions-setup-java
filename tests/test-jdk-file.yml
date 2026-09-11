@@ -21,21 +21,21 @@ jobs:
             echo "Node.js $NODE_VER is sufficient"
           fi
 
-      - name: Download JDK tarball for jdk-file test
+      - name: Download a JDK archive for jdk-file test
         run: |
           # Download Temurin 21 JDK tarball for x64 Linux
           JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
           echo "Downloading JDK from: $JDK_URL"
-          curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
-          echo "Download complete"
-          ls -lh /tmp/jdk.tar.gz
+          curl -fsSL -o "$GITHUB_WORKSPACE/jdk21.tar.gz" "$JDK_URL"
+          echo "Downloaded JDK archive:"
+          ls -lh "$GITHUB_WORKSPACE/jdk21.tar.gz"
 
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'jdkfile'
-          jdk-file: '/tmp/jdk.tar.gz'
+          jdk-file: '${{ github.workspace }}/jdk21.tar.gz'
 
       - name: Assert distribution output
         env:
@@ -68,7 +68,7 @@ jobs:
             echo "FAIL: expected Java 21 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 21 is available via jdk-file"
+          echo "PASS: Java 21 installed from jdk-file"
 
   test-jdkFile-deprecated:
     runs-on: ubuntu-latest
@@ -89,31 +89,31 @@ jobs:
             echo "Node.js $NODE_VER is sufficient"
           fi
 
-      - name: Download JDK tarball for jdkFile test
+      - name: Download a JDK archive for jdkFile test
         run: |
           JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
           echo "Downloading JDK from: $JDK_URL"
-          curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
-          echo "Download complete"
-          ls -lh /tmp/jdk.tar.gz
+          curl -fsSL -o "$GITHUB_WORKSPACE/jdk21.tar.gz" "$JDK_URL"
+          echo "Downloaded JDK archive:"
+          ls -lh "$GITHUB_WORKSPACE/jdk21.tar.gz"
 
-      - id: setup-java
+      - id: setup-java-deprecated
         uses: .
         with:
           java-version: '21'
           distribution: 'jdkfile'
-          jdkFile: '/tmp/jdk.tar.gz'
+          jdkFile: '${{ github.workspace }}/jdk21.tar.gz'
 
-      - name: Assert distribution output
+      - name: Assert distribution output (deprecated jdkFile alias)
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.distribution }}
+          ACTUAL: ${{ steps.setup-java-deprecated.outputs.distribution }}
         run: |
           echo "actual distribution: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
-            echo "FAIL: distribution output is empty"
+            echo "FAIL: distribution output is empty when using deprecated jdkFile input"
             exit 1
           fi
-          echo "PASS: distribution=$ACTUAL"
+          echo "PASS: distribution=$ACTUAL (deprecated jdkFile alias works)"
 
       - name: Assert java is available
         run: |
@@ -124,4 +124,4 @@ jobs:
             echo "FAIL: expected Java 21 but got: $JAVA_VER"
             exit 1
           fi
-          echo "PASS: Java 21 is available via jdkFile (deprecated alias)"
+          echo "PASS: Java 21 installed from jdkFile (deprecated alias)"
