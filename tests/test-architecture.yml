@@ -14,15 +14,23 @@ jobs:
           architecture: 'x64'
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          PATH_OUT: ${{ steps.setup-java.outputs.path }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+          echo "version: $VERSION"
+          echo "path: $PATH_OUT"
+          echo "distribution: $DIST"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
-      - name: Assert java is available
+          if [ -z "$PATH_OUT" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          echo "PASS: Java installed with architecture=x64, version=$VERSION"
+      - name: Assert java is on PATH
         run: |
           java -version
-          echo "PASS: java is available"
+          echo "PASS: java command works"

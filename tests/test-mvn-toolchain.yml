@@ -11,29 +11,36 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          mvn-toolchain-id: 'my-custom-toolchain'
+          mvn-toolchain-id: 'my-temurin-17'
           mvn-toolchain-vendor: 'adoptium'
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+          echo "version: $VERSION"
+          echo "distribution: $DIST"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
-      - name: Assert java is available
+          echo "PASS: Java installed with custom toolchain id/vendor, version=$VERSION"
+      - name: Assert java is on PATH
         run: |
           java -version
-          echo "PASS: java is available"
-      - name: Assert toolchains.xml was created
+          echo "PASS: java command works"
+      - name: Assert Maven toolchains.xml was created
         run: |
-          echo "Checking for toolchains.xml..."
-          if [ -f "$HOME/.m2/toolchains.xml" ]; then
-            echo "PASS: toolchains.xml found"
-            cat "$HOME/.m2/toolchains.xml"
+          TOOLCHAINS="$HOME/.m2/toolchains.xml"
+          if [ -f "$TOOLCHAINS" ]; then
+            echo "toolchains.xml contents:"
+            cat "$TOOLCHAINS"
+            if grep -q "my-temurin-17" "$TOOLCHAINS"; then
+              echo "PASS: custom toolchain-id found in toolchains.xml"
+            else
+              echo "FAIL: custom toolchain-id 'my-temurin-17' not found in toolchains.xml"
+              exit 1
+            fi
           else
-            echo "INFO: toolchains.xml not found at default location"
-            echo "PASS: action completed with mvn-toolchain inputs"
+            echo "INFO: toolchains.xml not created (may be expected if no Maven present)"
           fi

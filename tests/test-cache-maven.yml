@@ -1,4 +1,4 @@
-name: Test cache input with maven
+name: Test cache and cache-dependency-path inputs
 on:
   workflow_dispatch:
 jobs:
@@ -6,23 +6,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a pom.xml for cache-dependency-path
+        run: |
+          cat > /tmp/pom.xml << 'EOF'
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>com.example</groupId>
+            <artifactId>test</artifactId>
+            <version>1.0.0</version>
+          </project>
+          EOF
+          cp /tmp/pom.xml "$GITHUB_WORKSPACE/pom.xml"
       - id: setup-java
         uses: .
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
+          cache-dependency-path: 'pom.xml'
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          CACHE_HIT: ${{ steps.setup-java.outputs.cache-hit }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+          echo "version: $VERSION"
+          echo "cache-hit: $CACHE_HIT"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
-      - name: Assert java is available
+          echo "PASS: Java installed with maven cache, version=$VERSION"
+      - name: Assert java is on PATH
         run: |
           java -version
-          echo "PASS: java is available"
+          echo "PASS: java command works"
