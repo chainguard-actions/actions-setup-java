@@ -6,32 +6,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download a JDK tarball for use as jdkFile
-        id: download-jdk
+      - name: Download JDK archive for jdkFile test
         run: |
-          # Download a small JDK tarball from Adoptium API
-          JDK_URL=$(curl -fsSL \
-            "https://api.adoptium.net/v3/assets/latest/21/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse" \
-            | python3 -c "import sys,json; data=json.load(sys.stdin); print(data[0]['binary']['package']['link'])")
-          echo "Downloading JDK from: $JDK_URL"
+          # Download a small JDK tarball to use as jdkFile input
+          # Using Temurin JDK 21 for x64 Linux
+          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          echo "Downloading JDK from $JDK_URL"
           curl -fsSL -o /tmp/jdk.tar.gz "$JDK_URL"
-          echo "jdk_path=/tmp/jdk.tar.gz" >> $GITHUB_OUTPUT
+          echo "Download complete: $(ls -lh /tmp/jdk.tar.gz)"
       - id: action
         uses: .
         with:
           java-version: '21'
           distribution: 'jdkfile'
-          jdkFile: ${{ steps.download-jdk.outputs.jdk_path }}
+          jdkFile: '/tmp/jdk.tar.gz'
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.action.outputs.version }}
+          VERSION: ${{ steps.action.outputs.version }}
+          JAVA_PATH: ${{ steps.action.outputs.path }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
+          echo "version: $VERSION"
+          echo "path: $JAVA_PATH"
+          if [ -z "$VERSION" ]; then
             echo "FAIL: expected version output to be set"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: expected path output to be set"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION path=$JAVA_PATH"
       - name: Assert java is available
         run: |
           java -version

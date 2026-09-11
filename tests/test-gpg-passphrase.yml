@@ -6,43 +6,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Generate a test GPG key (no passphrase)
+      - name: Generate a test GPG key
         id: gen-gpg
         run: |
-          # Generate a GPG key for testing
-          gpg --batch --gen-key <<EOF
+          # Generate a test GPG key without passphrase for testing
+          cat > /tmp/gpg-batch.txt << 'EOF'
           %no-protection
           Key-Type: RSA
           Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
           Name-Real: Test User
           Name-Email: test@example.com
           Expire-Date: 0
           %commit
           EOF
+          gpg --batch --gen-key /tmp/gpg-batch.txt
           # Export the private key
-          GPG_KEY=$(gpg --armor --export-secret-keys test@example.com)
-          echo "gpg_key<<GPGEOF" >> $GITHUB_OUTPUT
-          echo "$GPG_KEY" >> $GITHUB_OUTPUT
-          echo "GPGEOF" >> $GITHUB_OUTPUT
+          FINGERPRINT=$(gpg --list-secret-keys --with-colons test@example.com | grep '^fpr' | head -1 | cut -d: -f10)
+          echo "fingerprint=$FINGERPRINT" >> "$GITHUB_OUTPUT"
+          gpg --batch --armor --export-secret-keys "$FINGERPRINT" > /tmp/test-private-key.asc
+          echo "GPG key generated successfully"
+      - name: Read GPG key
+        id: read-gpg
+        run: |
+          GPG_KEY=$(cat /tmp/test-private-key.asc)
+          echo "gpg-key<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$GPG_KEY" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
       - id: action
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_key }}
+          gpg-private-key: ${{ steps.read-gpg.outputs.gpg-key }}
           gpg-passphrase: 'MY_GPG_PASSPHRASE'
         env:
           MY_GPG_PASSPHRASE: ''
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.action.outputs.version }}
+          VERSION: ${{ steps.action.outputs.version }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
             echo "FAIL: expected version output to be set"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
+          echo "PASS: version=$VERSION"
       - name: Assert java is available
         run: |
           java -version
