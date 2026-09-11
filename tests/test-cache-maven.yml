@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - id: setup-java
+      - id: action
         uses: .
         with:
           java-version: '17'
@@ -14,8 +14,8 @@ jobs:
           cache: 'maven'
       - name: Assert Java version output is set
         env:
-          VERSION: ${{ steps.setup-java.outputs.version }}
-          PATH_OUT: ${{ steps.setup-java.outputs.path }}
+          VERSION: ${{ steps.action.outputs.version }}
+          PATH_OUT: ${{ steps.action.outputs.path }}
         run: |
           echo "version: $VERSION"
           echo "path: $PATH_OUT"
@@ -27,7 +27,7 @@ jobs:
             echo "FAIL: path output is empty"
             exit 1
           fi
-          echo "PASS: Java installed with maven cache enabled"
+          echo "PASS: Java installed with cache=maven, version=$VERSION"
       - name: Assert java binary works
         run: |
           java -version

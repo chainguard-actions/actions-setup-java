@@ -9,8 +9,11 @@ jobs:
       - name: Generate a test GPG key
         id: gen-gpg
         run: |
-          # Generate a GPG key non-interactively for testing
-          gpg --batch --gen-key <<EOF
+          # Install gpg if not present
+          which gpg || apt-get install -y gnupg
+
+          # Generate a test GPG key non-interactively
+          cat > /tmp/gpg-batch.txt << 'EOF'
           %no-protection
           Key-Type: RSA
           Key-Length: 2048
@@ -21,24 +24,29 @@ jobs:
           Expire-Date: 0
           %commit
           EOF
-          # Export the private key
-          GPG_KEY=$(gpg --armor --export-secret-keys test@example.com)
-          echo "gpg_key<<GPGEOF" >> $GITHUB_OUTPUT
-          echo "$GPG_KEY" >> $GITHUB_OUTPUT
-          echo "GPGEOF" >> $GITHUB_OUTPUT
-      - id: setup-java
+
+          gpg --batch --gen-key /tmp/gpg-batch.txt
+
+          # Export the private key as base64
+          KEY_ID=$(gpg --list-secret-keys --keyid-format LONG test@example.com 2>/dev/null | grep sec | awk '{print $2}' | cut -d'/' -f2)
+          echo "key_id=$KEY_ID" >> $GITHUB_OUTPUT
+          GPG_PRIVATE_KEY=$(gpg --armor --export-secret-keys "$KEY_ID" | base64 -w 0)
+          echo "gpg_private_key=$GPG_PRIVATE_KEY" >> $GITHUB_OUTPUT
+
+      - id: action
         uses: .
         with:
           java-version: '17'
           distribution: 'temurin'
-          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_key }}
+          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_private_key }}
           gpg-passphrase: 'GPG_PASSPHRASE'
         env:
           GPG_PASSPHRASE: ''
+
       - name: Assert Java version output is set
         env:
-          VERSION: ${{ steps.setup-java.outputs.version }}
-          PATH_OUT: ${{ steps.setup-java.outputs.path }}
+          VERSION: ${{ steps.action.outputs.version }}
+          PATH_OUT: ${{ steps.action.outputs.path }}
         run: |
           echo "version: $VERSION"
           echo "path: $PATH_OUT"
@@ -50,7 +58,8 @@ jobs:
             echo "FAIL: path output is empty"
             exit 1
           fi
-          echo "PASS: Java installed with GPG key configured"
+          echo "PASS: Java installed with GPG key, version=$VERSION"
+
       - name: Assert java binary works
         run: |
           java -version
