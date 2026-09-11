@@ -6,14 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Generate a test GPG key
-        id: gen-gpg
+      - name: Generate a test GPG key (no passphrase)
         run: |
-          # Generate a test GPG key with a passphrase
-          export GNUPGHOME="$(mktemp -d)"
-          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
-          cat > "$GNUPGHOME/keygen.batch" << 'EOF'
-          %echo Generating test key
+          cat > /tmp/gpg-batch.txt << 'EOF'
+          %no-protection
           Key-Type: RSA
           Key-Length: 2048
           Subkey-Type: RSA
@@ -21,35 +17,35 @@ jobs:
           Name-Real: Test User
           Name-Email: test@example.com
           Expire-Date: 0
-          Passphrase: testpassphrase123
           %commit
-          %echo done
           EOF
-          gpg --batch --gen-key "$GNUPGHOME/keygen.batch"
-          GPG_KEY="$(gpg --armor --export-secret-keys test@example.com)"
-          echo "GPG_PRIVATE_KEY<<EOF" >> "$GITHUB_ENV"
-          echo "$GPG_KEY" >> "$GITHUB_ENV"
-          echo "EOF" >> "$GITHUB_ENV"
+          gpg --batch --gen-key /tmp/gpg-batch.txt
+          FINGERPRINT=$(gpg --list-secret-keys --with-colons test@example.com | grep '^fpr' | head -1 | cut -d: -f10)
+          gpg --batch --armor --export-secret-keys "$FINGERPRINT" > /tmp/test-gpg-key.asc
+          # Store key content in a file for the next step to read
+          echo "GPG_KEY_CONTENT<<EOF" >> $GITHUB_ENV
+          cat /tmp/test-gpg-key.asc >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'temurin'
-          gpg-private-key: ${{ env.GPG_PRIVATE_KEY }}
+          gpg-private-key: ${{ env.GPG_KEY_CONTENT }}
           gpg-passphrase: 'MY_GPG_PASSPHRASE'
         env:
-          MY_GPG_PASSPHRASE: 'testpassphrase123'
+          MY_GPG_PASSPHRASE: ''
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          VERSION: ${{ steps.setup-java.outputs.version }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
-      - name: Assert java is on PATH
+          echo "PASS: Java $VERSION installed with gpg-passphrase input set"
+      - name: Assert java is executable
         run: |
           java -version
-          echo "PASS: java is available"
+          echo "PASS: java is on PATH"

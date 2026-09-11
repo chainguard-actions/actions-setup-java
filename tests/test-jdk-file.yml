@@ -6,30 +6,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Download a JDK archive for jdkFile input
+      - name: Download a JDK archive for jdkFile test
         run: |
-          # Download Temurin JDK 21 for Linux x64
-          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
-          mkdir -p /tmp/jdk-download
-          curl -sfL "$JDK_URL" -o /tmp/jdk-download/jdk21.tar.gz
-          echo "JDK_FILE=/tmp/jdk-download/jdk21.tar.gz" >> "$GITHUB_ENV"
+          # Download Temurin 21 JDK tarball for x64 Linux
+          JDK_URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse"
+          echo "Downloading JDK from Adoptium API..."
+          curl -L -o /tmp/jdk-test.tar.gz "$JDK_URL"
+          echo "Download complete, size: $(du -sh /tmp/jdk-test.tar.gz | cut -f1)"
       - id: setup-java
         uses: .
         with:
           java-version: '21'
           distribution: 'jdkfile'
-          jdkFile: '/tmp/jdk-download/jdk21.tar.gz'
+          jdkFile: '/tmp/jdk-test.tar.gz'
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+          echo "version: $VERSION"
+          echo "path: $JAVA_PATH"
+          echo "distribution: $DIST"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
-      - name: Assert java is on PATH
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          echo "PASS: Java $VERSION installed from jdkFile"
+      - name: Assert java is executable
         run: |
           java -version
-          echo "PASS: java is available"
+          echo "PASS: java is on PATH"

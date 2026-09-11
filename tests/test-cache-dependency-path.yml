@@ -6,10 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Create a minimal pom.xml for cache detection
+      - name: Create a pom.xml at a specific path for cache-dependency-path
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/myapp"
-          cat > "$GITHUB_WORKSPACE/myapp/pom.xml" << 'EOF'
+          mkdir -p myapp
+          cat > myapp/pom.xml << 'EOF'
           <project>
             <modelVersion>4.0.0</modelVersion>
             <groupId>com.example</groupId>
@@ -26,15 +26,15 @@ jobs:
           cache-dependency-path: 'myapp/pom.xml'
       - name: Assert version output is set
         env:
-          ACTUAL: ${{ steps.setup-java.outputs.version }}
+          VERSION: ${{ steps.setup-java.outputs.version }}
         run: |
-          echo "actual version: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected version output to be non-empty"
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
             exit 1
           fi
-          echo "PASS: version=$ACTUAL"
-      - name: Assert java is on PATH
+          echo "PASS: Java $VERSION installed with cache-dependency-path set"
+      - name: Assert java is executable
         run: |
           java -version
-          echo "PASS: java is available"
+          echo "PASS: java is on PATH"
