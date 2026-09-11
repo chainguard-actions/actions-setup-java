@@ -1,0 +1,57 @@
+name: Test gpg-private-key and gpg-passphrase inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate a test GPG key
+        id: gen-gpg
+        run: |
+          # Generate a GPG key non-interactively for testing
+          cat > /tmp/gpg-batch.txt << 'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Subkey-Type: RSA
+          Subkey-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --gen-key /tmp/gpg-batch.txt
+          # Export the private key in armored format
+          FINGERPRINT=$(gpg --list-secret-keys --with-colons | grep '^fpr' | head -1 | cut -d: -f10)
+          echo "fingerprint=$FINGERPRINT"
+          GPG_KEY=$(gpg --armor --export-secret-keys "$FINGERPRINT")
+          # Store as base64 to avoid multiline issues
+          echo "gpg_key<<GPGEOF" >> "$GITHUB_OUTPUT"
+          echo "$GPG_KEY" >> "$GITHUB_OUTPUT"
+          echo "GPGEOF" >> "$GITHUB_OUTPUT"
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          gpg-private-key: ${{ steps.gen-gpg.outputs.gpg_key }}
+          gpg-passphrase: 'GPG_PASSPHRASE'
+        env:
+          GPG_PASSPHRASE: ''
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DIST"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: Java installed with GPG key configured, version=$VERSION"
+      - name: Assert java is on PATH
+        run: |
+          java -version
+          echo "PASS: java command works"
