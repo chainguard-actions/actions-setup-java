@@ -14,6 +14,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v5.3.0 | [`v5.3.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.3.0) | [`ad2b381`](https://github.com/actions/setup-java/commit/ad2b38190b15e4d6bdf0c97fb4fca8412226d287) |
 | v5.4.0 | [`v5.4.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.4.0) | [`1bcf9fb`](https://github.com/actions/setup-java/commit/1bcf9fb12cf4aa7d266a90ae39939e61372fe520) |
 | v5.5.0 | [`v5.5.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.5.0) | [`0f481fc`](https://github.com/actions/setup-java/commit/0f481fcb613427c0f801b606911222b5b6f3083a) |
+| v5.6.0 | [`v5.6.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.6.0) | [`03ad4de`](https://github.com/actions/setup-java/commit/03ad4de0992f5dab5e18fcb136590ce7c4a0ac95) |
 | v5.7.0 | [`v5.7.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.7.0) | [`b6effb0`](https://github.com/actions/setup-java/commit/b6effb05e454b25005698d916606bdc6ffcbf961) |
 | v6.0.0 | [`v6.0.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v6.0.0) | [`dd06d9c`](https://github.com/actions/setup-java/commit/dd06d9cba3e5552c54d9f8ea23572deb30010f7c) |
 | v6.0.1 | [`v6.0.1`](https://github.com/chainguard-actions/actions-setup-java/tree/v6.0.1) | [`de7274f`](https://github.com/actions/setup-java/commit/de7274f081f381c8f8158605e0321c36c376e2e6) |
