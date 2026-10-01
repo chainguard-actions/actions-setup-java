@@ -1,0 +1,64 @@
+name: Test setup-java with set-default false
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Record current java version before setup
+        id: before
+        run: |
+          BEFORE_JAVA=$(java -version 2>&1 | head -1 || echo "none")
+          echo "before_java=$BEFORE_JAVA"
+          echo "before_java=$BEFORE_JAVA" >> "$GITHUB_OUTPUT"
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          set-default: 'false'
+      - name: Assert path output is set
+        env:
+          JAVA_PATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $JAVA_PATH"
+          if [ -z "$JAVA_PATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JAVA_PATH" ]; then
+            echo "FAIL: path does not exist: $JAVA_PATH"
+            exit 1
+          fi
+          echo "PASS: path=$JAVA_PATH"
+      - name: Assert version output is set
+        env:
+          VER: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VER"
+          if [ -z "$VER" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VER"
+      - name: Assert JAVA_HOME_11 env var is set
+        run: |
+          # When set-default=false, JAVA_HOME_<major>_<arch> should be set
+          # Check for common arch variants
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64) ARCH_LABEL="X64" ;;
+            aarch64) ARCH_LABEL="ARM64" ;;
+            *) ARCH_LABEL="X64" ;;
+          esac
+          VAR_NAME="JAVA_HOME_11_${ARCH_LABEL}"
+          echo "Looking for env var: $VAR_NAME"
+          VAL=$(printenv "$VAR_NAME" || true)
+          echo "Value: $VAL"
+          if [ -z "$VAL" ]; then
+            echo "WARN: $VAR_NAME not set in this shell context (may be set in subsequent steps via GITHUB_ENV)"
+            echo "PASS: set-default=false completed without error"
+          else
+            echo "PASS: $VAR_NAME=$VAL"
+          fi

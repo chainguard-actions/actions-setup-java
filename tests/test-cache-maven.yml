@@ -1,0 +1,31 @@
+name: Test cache and cache-dependency-path inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: 'hardened/tests/fixtures/maven/pom.xml'
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          CACHE_KEY: ${{ steps.action.outputs.cache-primary-key }}
+        run: |
+          echo "version: $VERSION"
+          echo "cache-primary-key: $CACHE_KEY"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be set"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

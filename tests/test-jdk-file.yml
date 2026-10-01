@@ -1,0 +1,43 @@
+name: Test jdk-file input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download JDK tarball for jdk-file test
+        run: |
+          # Download a small JDK (Temurin 21 JRE for x64 Linux)
+          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          curl -fL "$JDK_URL" -o /tmp/jdk.tar.gz
+          echo "Downloaded JDK tarball"
+          ls -lh /tmp/jdk.tar.gz
+      - id: action
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'jdkfile'
+          jdk-file: '/tmp/jdk.tar.gz'
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          DISTRO: ${{ steps.action.outputs.distribution }}
+          PATH_OUT: ${{ steps.action.outputs.path }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DISTRO"
+          echo "path: $PATH_OUT"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be set"
+            exit 1
+          fi
+          if [ -z "$PATH_OUT" ]; then
+            echo "FAIL: expected path output to be set"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

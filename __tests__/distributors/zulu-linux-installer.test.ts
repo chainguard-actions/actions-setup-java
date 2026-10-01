@@ -1,0 +1,257 @@
+import {HttpClient} from '@actions/http-client';
+import * as semver from 'semver';
+import {ZuluDistribution} from '../../src/distributions/zulu/installer';
+import {IZuluVersions} from '../../src/distributions/zulu/models';
+import * as utils from '../../src/util';
+import os from 'os';
+import * as core from '@actions/core';
+
+import manifestData from '../data/zulu-linux.json';
+
+describe('getAvailableVersions', () => {
+  let spyHttpClient: jest.SpyInstance;
+  let spyUtilGetDownloadArchiveExtension: jest.SpyInstance;
+  let spyCoreError: jest.SpyInstance;
+
+  beforeEach(() => {
+    spyHttpClient = jest.spyOn(HttpClient.prototype, 'getJson');
+    spyHttpClient.mockReturnValue({
+      statusCode: 200,
+      headers: {},
+      result: [] as IZuluVersions[]
+    });
+
+    spyUtilGetDownloadArchiveExtension = jest.spyOn(
+      utils,
+      'getDownloadArchiveExtension'
+    );
+    spyUtilGetDownloadArchiveExtension.mockReturnValue('zip');
+
+    // Mock core.error to suppress error logs
+    spyCoreError = jest.spyOn(core, 'error');
+    spyCoreError.mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    [
+      {
+        version: '11',
+        architecture: 'x86',
+        packageType: 'jdk',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=false&crac_supported=false&arch=i686&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '11-ea',
+        architecture: 'x86',
+        packageType: 'jdk',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=false&crac_supported=false&arch=i686&release_status=ea&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '8',
+        architecture: 'x64',
+        packageType: 'jdk',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=false&crac_supported=false&arch=x64&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '8',
+        architecture: 'x64',
+        packageType: 'jre',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jre&javafx_bundled=false&crac_supported=false&arch=x64&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '8',
+        architecture: 'x64',
+        packageType: 'jdk+fx',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=true&crac_supported=false&arch=x64&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '8',
+        architecture: 'x64',
+        packageType: 'jre+fx',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jre&javafx_bundled=true&crac_supported=false&arch=x64&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '8',
+        architecture: 'x64',
+        packageType: 'jdk+crac',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=false&crac_supported=true&arch=x64&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '11',
+        architecture: 'arm64',
+        packageType: 'jdk',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=false&crac_supported=false&arch=aarch64&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ],
+    [
+      {
+        version: '11',
+        architecture: 'arm',
+        packageType: 'jdk',
+        checkLatest: false
+      },
+      '?os=linux_glibc&archive_type=zip&java_package_type=jdk&javafx_bundled=false&crac_supported=false&arch=arm&release_status=ga&availability_types=ca&page=1&page_size=100'
+    ]
+  ])('build correct url for %s -> %s', async (input, parsedUrl) => {
+    const distribution = new ZuluDistribution(input);
+    distribution['getPlatformOption'] = () => 'linux_glibc';
+    const buildUrl = `https://api.azul.com/metadata/v1/zulu/packages/${parsedUrl}`;
+
+    await distribution['getAvailableVersions']();
+
+    expect(spyHttpClient.mock.calls).toHaveLength(1);
+    expect(spyHttpClient.mock.calls[0][0]).toBe(buildUrl);
+  });
+
+  it.each([
+    ['amd64', 'x64'],
+    ['arm64', 'aarch64']
+  ])(
+    'defaults to os.arch(): %s mapped to distro arch: %s',
+    async (osArch: string, distroArch: string) => {
+      jest
+        .spyOn(os, 'arch')
+        .mockReturnValue(osArch as ReturnType<typeof os.arch>);
+
+      const distribution = new ZuluDistribution({
+        version: '17',
+        architecture: '', // to get default value
+        packageType: 'jdk',
+        checkLatest: false
+      });
+      distribution['getPlatformOption'] = () => 'linux_glibc';
+      // Override extension for linux default arch case to match util behavior
+      spyUtilGetDownloadArchiveExtension.mockReturnValue('tar.gz');
+      const buildUrl = `https://api.azul.com/metadata/v1/zulu/packages/?os=linux_glibc&archive_type=tar.gz&java_package_type=jdk&javafx_bundled=false&crac_supported=false&arch=${distroArch}&release_status=ga&availability_types=ca&page=1&page_size=100`;
+
+      await distribution['getAvailableVersions']();
+
+      expect(spyHttpClient.mock.calls).toHaveLength(1);
+      expect(spyHttpClient.mock.calls[0][0]).toBe(buildUrl);
+    }
+  );
+
+  it('load available versions', async () => {
+    spyHttpClient
+      .mockReturnValueOnce({
+        statusCode: 200,
+        headers: {},
+        result: manifestData as IZuluVersions[]
+      })
+      .mockReturnValueOnce({
+        statusCode: 200,
+        headers: {},
+        result: [] as IZuluVersions[]
+      });
+
+    const distribution = new ZuluDistribution({
+      version: '11',
+      architecture: 'x86',
+      packageType: 'jdk',
+      checkLatest: false
+    });
+    const availableVersions = await distribution['getAvailableVersions']();
+    expect(availableVersions).toHaveLength(manifestData.length);
+  });
+});
+
+describe('getArchitectureOptions', () => {
+  it.each([
+    [{architecture: 'x64'}, 'x64'],
+    [{architecture: 'x86'}, 'i686'],
+    [{architecture: 'aarch64'}, 'aarch64'],
+    [{architecture: 'arm64'}, 'aarch64'],
+    [{architecture: 'arm'}, 'arm']
+  ])('%s -> %s', (input, expected) => {
+    const distribution = new ZuluDistribution({
+      version: '11',
+      architecture: input.architecture,
+      packageType: 'jdk',
+      checkLatest: false
+    });
+    expect(distribution['getArchitectureOptions']()).toBe(expected);
+  });
+});
+
+describe('findPackageForDownload', () => {
+  it.each([
+    ['8', '8.0.282+8'],
+    ['11.x', '11.0.10+9'],
+    ['8.0', '8.0.282+8'],
+    ['11.0.x', '11.0.10+9'],
+    ['15', '15.0.2+7'],
+    ['9.0.0', '9.0.0+0'],
+    ['9.0', '9.0.1+0'],
+    ['8.0.262', '8.0.262+19'], // validate correct choice between [8.0.262.17, 8.0.262.19, 8.0.262.18]
+    ['8.0.262+17', '8.0.262+17'],
+    ['15.0.1+8', '15.0.1+8'],
+    ['15.0.1+9', '15.0.1+9']
+  ])('version is %s -> %s', async (input, expected) => {
+    const distribution = new ZuluDistribution({
+      version: input,
+      architecture: 'x86',
+      packageType: 'jdk',
+      checkLatest: false
+    });
+    distribution['getAvailableVersions'] = async () => manifestData;
+    const result = await distribution['findPackageForDownload'](
+      distribution['version']
+    );
+    expect(result.version).toBe(expected);
+  });
+
+  it('select correct bundle if there are multiple items with the same jdk version but different zulu versions', async () => {
+    const distribution = new ZuluDistribution({
+      version: '',
+      architecture: 'arm64',
+      packageType: 'jdk',
+      checkLatest: false
+    });
+    distribution['getAvailableVersions'] = async () => manifestData;
+    const result = await distribution['findPackageForDownload']('21.0.2');
+    expect(result.url).toBe(
+      'https://cdn.azul.com/zulu/bin/zulu21.32.17-ca-jdk21.0.2-linux_aarch64.tar.gz'
+    );
+  });
+
+  it('should throw an error', async () => {
+    const distribution = new ZuluDistribution({
+      version: '18',
+      architecture: 'x86',
+      packageType: 'jdk',
+      checkLatest: false
+    });
+    distribution['getAvailableVersions'] = async () => manifestData;
+    await expect(
+      distribution['findPackageForDownload'](distribution['version'])
+    ).rejects.toThrow(/No matching version found for SemVer/);
+  });
+});

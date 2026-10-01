@@ -1,0 +1,53 @@
+name: Test mvn-toolchain-id and mvn-toolchain-vendor inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          mvn-toolchain-id: 'my-temurin-21'
+          mvn-toolchain-vendor: 'Eclipse Adoptium'
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          DISTRO: ${{ steps.action.outputs.distribution }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DISTRO"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be set"
+            exit 1
+          fi
+          if [ -z "$DISTRO" ]; then
+            echo "FAIL: expected distribution output to be set"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"
+      - name: Assert Maven toolchains.xml was written with custom id and vendor
+        run: |
+          TOOLCHAINS="$HOME/.m2/toolchains.xml"
+          if [ ! -f "$TOOLCHAINS" ]; then
+            echo "FAIL: toolchains.xml not found at $TOOLCHAINS"
+            exit 1
+          fi
+          echo "toolchains.xml contents:"
+          cat "$TOOLCHAINS"
+          if ! grep -q "my-temurin-21" "$TOOLCHAINS"; then
+            echo "FAIL: custom mvn-toolchain-id 'my-temurin-21' not found in toolchains.xml"
+            exit 1
+          fi
+          if ! grep -q "Eclipse Adoptium" "$TOOLCHAINS"; then
+            echo "FAIL: custom mvn-toolchain-vendor 'Eclipse Adoptium' not found in toolchains.xml"
+            exit 1
+          fi
+          echo "PASS: toolchains.xml contains custom id and vendor"

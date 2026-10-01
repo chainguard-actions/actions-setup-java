@@ -1,0 +1,43 @@
+name: Test verify-signature-public-key input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Get Temurin GPG public key
+        id: get-key
+        run: |
+          # Fetch the real Temurin signing public key from adoptium
+          KEY=$(curl -fsSL "https://packages.adoptium.net/artifactory/api/security/keypair/default-gpg-key/public")
+          echo "key<<KEYEOF" >> $GITHUB_OUTPUT
+          echo "$KEY" >> $GITHUB_OUTPUT
+          echo "KEYEOF" >> $GITHUB_OUTPUT
+      - id: action
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          verify-signature: true
+          verify-signature-public-key: ${{ steps.get-key.outputs.key }}
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          DISTRO: ${{ steps.action.outputs.distribution }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DISTRO"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be set"
+            exit 1
+          fi
+          if [ -z "$DISTRO" ]; then
+            echo "FAIL: expected distribution output to be set"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"
