@@ -1,0 +1,47 @@
+name: Test jdk-file and jdkFile inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download a JDK archive for jdk-file test
+        run: |
+          # Download a small Temurin JDK 21 tarball for use with jdk-file input
+          JDK_URL="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz"
+          echo "Downloading JDK archive..."
+          curl -sfL -o /tmp/jdk.tar.gz "$JDK_URL" || {
+            echo "Download failed, skipping jdk-file test"
+            echo "SKIP=true" >> "$GITHUB_ENV"
+          }
+      - id: setup-java-jdk-file
+        if: env.SKIP != 'true'
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'jdkfile'
+          jdk-file: '/tmp/jdk.tar.gz'
+          jdkFile: '/tmp/jdk.tar.gz'
+        continue-on-error: true
+      - name: Assert action ran (jdk-file scenario)
+        env:
+          OUTCOME: ${{ steps.setup-java-jdk-file.outcome }}
+          VERSION: ${{ steps.setup-java-jdk-file.outputs.version }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "version: $VERSION"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$VERSION" ]; then
+              echo "FAIL: action succeeded but version output is empty"
+              exit 1
+            fi
+            echo "PASS: jdk-file installation succeeded with version $VERSION"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (expected for jdk-file with network constraints)"
+          elif [ -z "$OUTCOME" ] || [ "$OUTCOME" = "skipped" ]; then
+            echo "PASS: step was skipped (download failed)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

@@ -1,0 +1,77 @@
+name: Test multiple Java versions setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Setup Java 17 (not default)
+        id: setup-java-17
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          set-default: 'false'
+      - name: Assert Java 17 path output
+        env:
+          JPATH17: ${{ steps.setup-java-17.outputs.path }}
+        run: |
+          echo "Java 17 path: $JPATH17"
+          if [ -z "$JPATH17" ]; then
+            echo "FAIL: Java 17 path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JPATH17" ]; then
+            echo "FAIL: Java 17 path does not exist: $JPATH17"
+            exit 1
+          fi
+          echo "PASS: Java 17 installed at $JPATH17"
+      - name: Setup Java 21 (default)
+        id: setup-java-21
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          set-default: 'true'
+      - name: Assert Java 21 path output
+        env:
+          JPATH21: ${{ steps.setup-java-21.outputs.path }}
+        run: |
+          echo "Java 21 path: $JPATH21"
+          if [ -z "$JPATH21" ]; then
+            echo "FAIL: Java 21 path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JPATH21" ]; then
+            echo "FAIL: Java 21 path does not exist: $JPATH21"
+            exit 1
+          fi
+          echo "PASS: Java 21 installed at $JPATH21"
+      - name: Assert default Java is 21
+        run: |
+          VER=$(java -version 2>&1 | head -1)
+          echo "java version output: $VER"
+          if echo "$VER" | grep -qE '"21(\.|")'; then
+            echo "PASS: Default Java is 21"
+          else
+            echo "FAIL: expected default Java 21, got: $VER"
+            exit 1
+          fi
+      - name: Assert Java 17 binary exists at its path
+        env:
+          JPATH17: ${{ steps.setup-java-17.outputs.path }}
+        run: |
+          echo "Checking Java 17 binary at: $JPATH17/bin/java"
+          if [ ! -f "$JPATH17/bin/java" ]; then
+            echo "FAIL: Java 17 binary not found at $JPATH17/bin/java"
+            exit 1
+          fi
+          VER=$("$JPATH17/bin/java" -version 2>&1 | head -1)
+          echo "Java 17 version: $VER"
+          if echo "$VER" | grep -qE '"17(\.|")'; then
+            echo "PASS: Java 17 binary confirmed"
+          else
+            echo "FAIL: expected Java 17 at $JPATH17, got: $VER"
+            exit 1
+          fi

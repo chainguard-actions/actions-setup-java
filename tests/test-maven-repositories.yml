@@ -1,0 +1,37 @@
+name: Test Maven repositories inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          mvn-repositories: |
+            my-repo:https://repo.example.com/maven2:false
+          mvn-plugin-repositories: |
+            my-plugin-repo:https://plugins.example.com/maven2:false
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-java.outputs.version }}
+          DIST: ${{ steps.setup-java.outputs.distribution }}
+        run: |
+          echo "version: $VERSION"
+          echo "distribution: $DIST"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$DIST" ]; then
+            echo "FAIL: distribution output is empty"
+            exit 1
+          fi
+          echo "PASS: java installed with maven repository configuration"
+      - name: Assert java is available
+        run: |
+          java -version
+          echo "PASS: java is available"

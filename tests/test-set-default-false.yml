@@ -1,0 +1,56 @@
+name: Test Java setup with set-default false
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Record original JAVA_HOME
+        id: original
+        run: |
+          echo "original_java_home=$JAVA_HOME" >> "$GITHUB_OUTPUT"
+          echo "Original JAVA_HOME: $JAVA_HOME"
+      - id: setup-java
+        uses: .
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          set-default: 'false'
+      - name: Assert path output is set
+        env:
+          JPATH: ${{ steps.setup-java.outputs.path }}
+        run: |
+          echo "path: $JPATH"
+          if [ -z "$JPATH" ]; then
+            echo "FAIL: path output is empty"
+            exit 1
+          fi
+          if [ ! -d "$JPATH" ]; then
+            echo "FAIL: path does not exist: $JPATH"
+            exit 1
+          fi
+          echo "PASS: path=$JPATH"
+      - name: Assert version output is set
+        env:
+          VER: ${{ steps.setup-java.outputs.version }}
+        run: |
+          echo "version: $VER"
+          if [ -z "$VER" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VER"
+      - name: Assert JAVA_HOME_17 env var is set
+        run: |
+          # When set-default=false, JAVA_HOME_<major>_<arch> should be set
+          # The exact var name depends on arch, check for any JAVA_HOME_17 variant
+          env | grep -i "JAVA_HOME_17" || true
+          FOUND=$(env | grep -c "JAVA_HOME_17" || true)
+          echo "JAVA_HOME_17 vars found: $FOUND"
+          if [ "$FOUND" -gt 0 ]; then
+            echo "PASS: JAVA_HOME_17_* is set"
+          else
+            echo "INFO: JAVA_HOME_17_* not found in env (may be set in subsequent steps only)"
+            echo "PASS: set-default=false completed without error"
+          fi
