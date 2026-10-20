@@ -8,6 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v4.6.0 | [`v4.6.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v4.6.0) | [`7a6d8a8`](https://github.com/actions/setup-java/commit/7a6d8a8234af8eb26422e24e3006232cccaa061b) |
 | v4.8.0 | [`v4.8.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v4.8.0) | [`c1e3236`](https://github.com/actions/setup-java/commit/c1e323688fd81a25caa38c78aa6df2d33d3e20d9) |
 | v4.9.1 | [`v4.9.1`](https://github.com/chainguard-actions/actions-setup-java/tree/v4.9.1) | [`cf277c6`](https://github.com/actions/setup-java/commit/cf277c60eb25467037889841efdb72551f06f6c3) |
 | v5.2.0 | [`v5.2.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v5.2.0) | [`be666c2`](https://github.com/actions/setup-java/commit/be666c2fcd27ec809703dec50e508c2fdc7f6654) |
