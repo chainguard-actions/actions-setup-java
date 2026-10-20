@@ -1,0 +1,37 @@
+name: Test basic temurin 17 install
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Assert outputs
+        env:
+          DIST: ${{ steps.action.outputs.distribution }}
+          VERSION: ${{ steps.action.outputs.version }}
+          JPATH: ${{ steps.action.outputs.path }}
+        run: |
+          echo "distribution: $DIST"
+          echo "version: $VERSION"
+          echo "path: $JPATH"
+          echo "JAVA_HOME: $JAVA_HOME"
+          if ! echo "$DIST" | grep -qi '^temurin'; then echo "FAIL: distribution '$DIST' is not temurin"; exit 1; fi
+          case "$VERSION" in
+            17*) ;;
+            *) echo "FAIL: version does not start with 17"; exit 1 ;;
+          esac
+          if [ ! -x "$JPATH/bin/java" ]; then echo "FAIL: java binary missing"; exit 1; fi
+          if [ "$JAVA_HOME" != "$JPATH" ]; then echo "FAIL: JAVA_HOME mismatch"; exit 1; fi
+          echo "PASS"
+      - name: Assert java on PATH
+        run: |
+          java -version 2>&1 | tee /tmp/jv.txt
+          if ! grep -q '"17' /tmp/jv.txt; then echo "FAIL: java -version not 17"; exit 1; fi
+          command -v javac || { echo "FAIL: javac missing (jdk expected)"; exit 1; }
+          echo "PASS"

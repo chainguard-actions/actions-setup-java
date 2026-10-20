@@ -1,0 +1,34 @@
+name: Test maven cache with dependency path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: '**/fixtures/maven-cache/pom.xml'
+      - name: Assert outputs
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          JPATH: ${{ steps.action.outputs.path }}
+          CACHE_HIT: ${{ steps.action.outputs.cache-hit }}
+        run: |
+          echo "version: $VERSION"
+          echo "path: $JPATH"
+          echo "cache-hit: $CACHE_HIT"
+          case "$VERSION" in
+            17*) ;;
+            *) echo "FAIL: version does not start with 17"; exit 1 ;;
+          esac
+          if [ ! -x "$JPATH/bin/java" ]; then echo "FAIL: java binary missing"; exit 1; fi
+          case "$CACHE_HIT" in
+            ""|true|false) ;;
+            *) echo "FAIL: unexpected cache-hit '$CACHE_HIT'"; exit 1 ;;
+          esac
+          echo "PASS"

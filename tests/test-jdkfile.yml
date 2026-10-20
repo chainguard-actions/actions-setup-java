@@ -1,0 +1,40 @@
+name: Test install from local jdkFile
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download JDK archive
+        run: |
+          case "$(uname -m)" in
+            aarch64|arm64) ARCH=aarch64 ;;
+            *) ARCH=x64 ;;
+          esac
+          curl -fsSL -o /tmp/jdk.tar.gz "https://api.adoptium.net/v3/binary/latest/17/ga/linux/${ARCH}/jdk/hotspot/normal/eclipse"
+          ls -l /tmp/jdk.tar.gz
+      - id: action
+        uses: .
+        with:
+          distribution: jdkfile
+          jdkFile: /tmp/jdk.tar.gz
+          java-version: '17.0.0'
+      - name: Assert outputs
+        env:
+          DIST: ${{ steps.action.outputs.distribution }}
+          VERSION: ${{ steps.action.outputs.version }}
+          JPATH: ${{ steps.action.outputs.path }}
+        run: |
+          echo "distribution: $DIST"
+          echo "version: $VERSION"
+          echo "path: $JPATH"
+          case "$VERSION" in
+            17*) ;;
+            *) echo "FAIL: version does not start with 17"; exit 1 ;;
+          esac
+          if [ ! -x "$JPATH/bin/java" ]; then echo "FAIL: java binary missing"; exit 1; fi
+          if [ "$JAVA_HOME" != "$JPATH" ]; then echo "FAIL: JAVA_HOME mismatch"; exit 1; fi
+          "$JPATH/bin/java" -version 2>&1 | tee /tmp/jv.txt
+          grep -q '"17' /tmp/jv.txt || { echo "FAIL: not java 17"; exit 1; }
+          echo "PASS"

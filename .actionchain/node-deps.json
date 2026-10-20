@@ -1,0 +1,17 @@
+{
+  "status": "self_contained",
+  "entries": [
+    {
+      "path": "dist/setup/index.js",
+      "status": "self_contained",
+      "warnings": [
+        "indirect-require: Indirect calls to \"require\" will not be bundled",
+        "indirect-require: Indirect calls to \"require\" will not be bundled"
+      ]
+    },
+    {
+      "path": "dist/cleanup/index.js",
+      "status": "self_contained"
+    }
+  ]
+}

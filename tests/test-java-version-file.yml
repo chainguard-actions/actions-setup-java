@@ -1,0 +1,24 @@
+name: Test java-version-file input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          distribution: temurin
+          java-version-file: tests/fixtures/.java-version
+      - name: Assert version from file
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          case "$VERSION" in
+            11*) ;;
+            *) echo "FAIL: expected version 11.x"; exit 1 ;;
+          esac
+          java -version 2>&1 | grep -q '"11' || { echo "FAIL: java on PATH is not 11"; exit 1; }
+          echo "PASS"

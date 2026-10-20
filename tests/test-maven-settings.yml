@@ -1,0 +1,28 @@
+name: Test maven settings.xml generation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Prepare settings dir
+        run: mkdir -p "$RUNNER_TEMP/m2settings"
+      - id: action
+        uses: .
+        with:
+          distribution: temurin
+          java-version: '17'
+          server-id: my-maven-repo
+          server-username: MY_MAVEN_USER
+          server-password: MY_MAVEN_PASS
+          settings-path: ${{ runner.temp }}/m2settings
+      - name: Assert settings.xml content
+        run: |
+          F="$RUNNER_TEMP/m2settings/settings.xml"
+          if [ ! -f "$F" ]; then echo "FAIL: $F not found"; exit 1; fi
+          cat "$F"
+          grep -q '<id>my-maven-repo</id>' "$F" || { echo "FAIL: server id missing"; exit 1; }
+          grep -q 'env.MY_MAVEN_USER' "$F" || { echo "FAIL: username env missing"; exit 1; }
+          grep -q 'env.MY_MAVEN_PASS' "$F" || { echo "FAIL: password env missing"; exit 1; }
+          echo "PASS"
