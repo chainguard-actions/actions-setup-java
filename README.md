@@ -20,6 +20,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v6.0.0 | [`v6.0.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v6.0.0) | [`dd06d9c`](https://github.com/actions/setup-java/commit/dd06d9cba3e5552c54d9f8ea23572deb30010f7c) | [`HARDENING.md`](https://github.com/chainguard-actions/actions-setup-java/blob/v6.0.0/HARDENING.md) |
 | v6.0.1 | [`v6.0.1`](https://github.com/chainguard-actions/actions-setup-java/tree/v6.0.1) | [`de7274f`](https://github.com/actions/setup-java/commit/de7274f081f381c8f8158605e0321c36c376e2e6) | [`HARDENING.md`](https://github.com/chainguard-actions/actions-setup-java/blob/v6.0.1/HARDENING.md) |
 | v6.1.0 | [`v6.1.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v6.1.0) | [`b843ebf`](https://github.com/actions/setup-java/commit/b843ebf9b913146b38da2eaa7aeddf76074ae1ad) | [`HARDENING.md`](https://github.com/chainguard-actions/actions-setup-java/blob/v6.1.0/HARDENING.md) |
+| v6.2.0 | [`v6.2.0`](https://github.com/chainguard-actions/actions-setup-java/tree/v6.2.0) | [`77dd5b2`](https://github.com/actions/setup-java/commit/77dd5b2ce225ea11469928ac317850245a74ae78) | [`HARDENING.md`](https://github.com/chainguard-actions/actions-setup-java/blob/v6.2.0/HARDENING.md) |
 
 ## Privacy
 
