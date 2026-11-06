@@ -1,6 +1,16 @@
 {
   "owner": "actions",
   "repo": "setup-java",
-  "version": "",
-  "url": "https://github.com/actions/setup-java"
+  "version": "v6.2.0",
+  "commit_sha": "77dd5b2ce225ea11469928ac317850245a74ae78",
+  "url": "https://github.com/actions/setup-java",
+  "policy_sha": "374911c4be584df24e6da57af2d990570ef0f859",
+  "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
+  "test_agent_version": "2",
+  "harden_agent_version": "2",
+  "dist_artifact": {
+    "gcs_uri": "gs://patch-actions-node-artifacts/dist-artifacts/actions/setup-java/v6.2.0/sha256-6f0770856bee5856ebea9ccf387e0534d14ac4e779226761f519dcd2ee8a6ffa.tar.gz",
+    "sha256": "6f0770856bee5856ebea9ccf387e0534d14ac4e779226761f519dcd2ee8a6ffa",
+    "size_bytes": 3814450
+  }
 }
